@@ -1,7 +1,7 @@
 #load packages
 
 library(endorse)
-library(tidyverse)
+#library(tidyverse)
 library(haven)
 library(ggpubr)
 library(missForest)
@@ -16,7 +16,7 @@ library(tidyr) # For pivot_longer()
 #setwd("~/cloud/project/ReceivedScripts/")
 
 #load data
-SKdata <- read_sav("/cloud/project/ReceivedScripts/Slovakia.sav")
+SKdata <- read_sav("/home/grigdon/projects/AaD_Research/datasets/Slovakia.sav")
 
 #view data
 View(SKdata)
@@ -183,16 +183,6 @@ data_slvk_vars <- as_tibble(data_slvk_imp$ximp)
 sapply(data_slvk_vars, function(x) sum(is.na(x)))
 #now no NAs
 
-# TEST
-
-
-
-
-
-
-
-library(tidyverse)
-
 # Load data
 df <- as_tibble(data_slvk_imp$ximp)
 
@@ -224,7 +214,8 @@ df_standardized <- df %>%
   )
 
 # Save standardized data
-write_csv(df_standardized, "data_standardized.csv")
+
+write.csv(df_standardized, "/home/grigdon/projects/AaD_Research/datasets/data_standardized.csv")
 
 data_slvk_gaber <- as_tibble(merge(df_standardized, data_slvk_questions, by = "id"))
 
