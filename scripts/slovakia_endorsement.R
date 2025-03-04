@@ -14,9 +14,9 @@ library(dplyr)
 library(ggplot2)
 library(tidyr)
 
-#============================================
+#====================================================
 # 1. Data Loading and Initial Processing for Slovakia
-#============================================
+#====================================================
 
 SKdata <- read_sav("~/projects/AaD_Research/datasets/scrubbed_datasets/slovakia_scrubbed_dataset.sav")
 
@@ -31,7 +31,7 @@ data_slvk_questions <- SKdata[questions]
 vars <- c("id", "male", "age", "educ", "capital", "ideology", "income", "DemPolGrievance", "PolicyPolGrievance",
       "DemonstrateTrad", "DemonstrateNational", "PetitionSameSex", "VoteFarRight", "VotePrevFarRight",
       "ideologyLC", "SocialMediaUse", "InternetUse", "SlovakNationality", "FAMincome", "Nationalist",
-      "EconGrievanceRetro", "EconGrievanceProspInd", "EconGrievanceProspAgg", "EconGrievanceProspMostFams",
+      "EconGrievenceRetro", "EconGrievenceProspInd", "EconGrievenceProspAgg", "EconGrievenceProspMostFams",
       "NatPride", "RomaPartner", "RomaNeighbor", "GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner", "Ukraine",
       "ChristianSchool", "MaleChauvinism", "LawOrder", "ChurchPolitics", "Abortion", "TradMarriage", "SexbMarriage",
       "ChildHome", "MaleJobs", "NativeJobs", "NativeRights", "Religiosity")
@@ -39,7 +39,8 @@ vars <- c("id", "male", "age", "educ", "capital", "ideology", "income", "DemPolG
 # Subset and recode variables
 data_slvk_vars <- SKdata[vars]
 
-
+# Convert all variables to numeric
+data_slvk_vars <- mutate(data_slvk_vars, across(everything(), ~as.numeric(.)))
 
 
 
