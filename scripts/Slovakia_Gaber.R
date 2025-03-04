@@ -1,3 +1,187 @@
+# Complete Analysis Script for Militia Support in Slovakia
+# This script processes survey data, fits endorsement models, and analyzes marginal effects
+# for understanding factors that influence militia support
+
+# Load required packages
+library(endorse)
+# library(tidyverse)
+library(haven)
+library(ggpubr)
+library(missForest)
+library(forcats)
+library(reshape2)
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+
+#============================================
+# 1. Data Loading and Initial Processing
+#============================================
+
+# Load the survey data
+SKdata <- read_sav("/home/grigdon/projects/AaD_Research/datasets/Slovakia.sav")
+
+# Define questions for the endorsement experiment
+questions <- c("id", "q10a_control", "q10b_control", "q10c_control", 
+               "q10a_experiment", "q10b_experiment", "q10c_experiment")
+
+# Select relevant columns for endorsement analysis
+data_slvk_questions <- SKdata[questions]
+
+# Reverse code responses (1 ↔ 4, 2 ↔ 3)
+data_slvk_questions <- data_slvk_questions %>%
+  mutate(across(2:7, ~ recode(as.numeric(.), 
+                              `1` = 4L, 
+                              `2` = 3L, 
+                              `3` = 2L, 
+                              `4` = 1L, 
+                              .default = NA_integer_)))
+
+#============================================
+# 2. Variable Preparation and Recoding
+#============================================
+
+# Prepare and relabel covariates
+data_slvk_vars <- mutate(SKdata,
+                         id = id,
+                         gender = r1,
+                         age = r2pov,
+                         education = r4,
+                         is_capital = recode(as.integer(r13),
+                                             `1` = 1L,
+                                             .default = 0L),
+                         ideology = recode(as.integer(y1),
+                                           `1` = 1L, `2` = 2L, `3` = 3L, 
+                                           `4` = 4L, `5` = 5L, `9` = 99L),
+                         income = recode(as.integer(r11b),
+                                         `0` = 0L, `1` = 1L, `2` = 2L,
+                                         `3` = 3L, `4` = 4L, `5` = 5L,
+                                         `99` = 99L),
+                         DemPolGrievence = q4a,
+                         PolicyPolGrievence = q4b,
+                         EconGrievenceRetro = q5a,
+                         EconGrievenceProspInd = q5b,
+                         EconGrievenceProspAgg = q5c,
+                         NatPride = q7,
+                         NativeRights = q9a,
+                         NativeJobs = q9m,
+                         LawOrder = q9e,
+                         Chauvinism = q9d,
+                         ChristianSchool = q9c,
+                         GayNeighbor = q8c,
+                         GayPartner = q8d,
+                         ForNeighbor = q8e,
+                         ForPartner = q8f,
+                         Ukraine = q8g,
+                         DemonstrateNational = q12b,
+                         DemonstrateTrad = q12a
+)
+
+# Define variables to keep
+vars <- c("id", "gender", "age", "education", "is_capital", "income", 
+          "ideology", "DemPolGrievence", "PolicyPolGrievence",
+          "EconGrievenceRetro", "EconGrievenceProspInd", "EconGrievenceProspAgg",
+          "NatPride", "NativeRights", "NativeJobs", "LawOrder", "Chauvinism",
+          "ChristianSchool", "GayNeighbor", "GayPartner", "ForNeighbor",
+          "ForPartner", "Ukraine", "DemonstrateNational", "DemonstrateTrad")
+
+# Subset and recode variables
+data_slvk_vars <- data_slvk_vars[vars]
+
+# First, let's check what values we actually have in these columns
+value_check <- sapply(data_slvk_vars[14:24], function(x) unique(x))
+print("Unique values in columns 14-24:")
+print(value_check)
+
+# Recode specific variables with a default value for unspecified cases
+data_slvk_vars <- mutate(data_slvk_vars, 
+                         across(14:24, ~ recode(as.numeric(.),
+                                                `1` = 4L,
+                                                `2` = 3L,
+                                                `3` = 2L,
+                                                `4` = 1L,
+                                                .default = NA_integer_)))
+
+# Convert all variables to numeric
+data_slvk_vars <- mutate(data_slvk_vars, across(everything(), ~as.numeric(.)))
+
+# Check the number of columns before applying the missing value treatment
+n_cols <- ncol(data_slvk_vars)
+print(paste("Number of columns in data_slvk_vars:", n_cols))
+
+# Handle missing values for all columns except ID (adjust range based on actual number of columns)
+data_slvk_vars <- mutate(data_slvk_vars, 
+                         across(2:n_cols, ~ifelse(. %in% c(99, 9), NA, .)))
+#============================================
+# 3. Missing Data Imputation
+#============================================
+
+# Impute missing values using Random Forest
+data_slvk_imp <- missForest(as.data.frame(data_slvk_vars))
+data_slvk_vars <- as_tibble(data_slvk_imp$ximp)
+
+# First, let's see what columns we have
+print("Column names in data_slvk_vars:")
+print(names(data_slvk_vars))
+
+# Convert imputed data to tibble
+data_slvk_vars <- as_tibble(data_slvk_imp$ximp)
+
+# Get the number of columns (excluding the ID column which is column 1)
+n_cols <- ncol(data_slvk_vars)
+
+# Standardize all variables except the ID column
+data_slvk_vars <- mutate(data_slvk_vars, across(2:n_cols, ~ as.vector(scale(.))))
+
+# Verify the standardization worked
+print("Summary of standardized variables:")
+print(summary(data_slvk_vars))
+#============================================
+# 4. Endorsement Experiment Setup
+#============================================
+
+# Create named list for response questions
+Y <- list(Q1 = c("q10a_control", "q10a_experiment"), 
+          Q2 = c("q10b_control", "q10b_experiment"), 
+          Q3 = c("q10c_control", "q10c_experiment"))
+
+#============================================
+# 5. Model Fitting
+#============================================
+
+# Merge data back in
+data_slvk <- as_tibble(merge(data_slvk_vars, data_slvk_questions, by = "id"))
+
+# Fit the full endorsement model
+endorseFULL1 <- endorse(Y = Y, 
+                        data = data_slvk, 
+                        identical.lambda = FALSE, 
+                        covariates = TRUE, 
+                        formula.indiv = formula(~ age + gender + education + 
+                                                  is_capital + ideology + income + 
+                                                  DemPolGrievence + PolicyPolGrievence + 
+                                                  EconGrievenceRetro + EconGrievenceProspInd + 
+                                                  EconGrievenceProspAgg + NatPride + 
+                                                  NativeRights + NativeJobs + 
+                                                  DemonstrateNational + LawOrder + 
+                                                  Chauvinism + ChristianSchool + 
+                                                  DemonstrateTrad + GayNeighbor + 
+                                                  GayPartner + ForNeighbor + 
+                                                  ForPartner + Ukraine), 
+                        hierarchical = FALSE)
+
+# Graph the endorsement experiment to ensure it falls in line with the Siroky findings.
+
+df <- data.frame(as.matrix(endorseFULL1$delta))
+ci <- data.frame(variables = colnames(df[2:25]), mean = apply(df[2:25], 2, mean), sd = apply(df[2:25], 2, sd))
+ci <- mutate(ci, max = mean + 1.96 * sd, min = mean - 1.96 * sd)
+ci$variables <- c("Age", "Gender", "Education", "Capital", "Ideology", "Income", "DemPolGrievence", "PolicyPolGrievence", "EconGrievenceRetro", "EconGrievenceProspInd", "EconGrievenceProspAgg", "NatPride", "NativeRights", "NativeJobs", "DemonstrateNational", "LawOrder", "Chauvinism", "ChristianSchool", "DemonstrateTrad", "GayNeighbor", "GayPartner", "ForNeighbor", "ForPartner", "Ukraine")
+ci <- mutate(ci, variables= fct_reorder(variables, mean))
+
+
+ggplot(ci, aes(x = variables, y = mean)) + geom_point() + geom_errorbar(aes(ymin = min, ymax = max)) + coord_flip() + geom_abline(slope = 0, intercept = 0, color = "red") + ggtitle("Model 2: Full Model") + theme(plot.title = element_text(hjust = 0.5)) 
+
 #==========================================================#
 # Research Paper-Quality Marginal Effects -- Version_10    #
 #==========================================================#

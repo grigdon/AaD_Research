@@ -12,9 +12,6 @@ library(dplyr)
 library(ggplot2)
 library(tidyr) # For pivot_longer()
 
-#set wd
-#setwd("~/cloud/project/ReceivedScripts/")
-
 #load data
 SKdata <- read_sav("/home/grigdon/projects/AaD_Research/datasets/Slovakia.sav")
 
@@ -24,8 +21,6 @@ View(SKdata)
 ##attach
 
 attach(SKdata)
-
-
 
 ###prepare the data
 
@@ -57,8 +52,6 @@ summary(data_slvk_questions)
 # Define experimental and control condition columns
 control_questions <- c("q10a_control", "q10b_control", "q10c_control")
 experiment_questions <- c("q10a_experiment", "q10b_experiment", "q10c_experiment")
-
-
 
 # Compute mean responses for control and experimental groups separately
 control_means <- data_slvk_questions %>%
