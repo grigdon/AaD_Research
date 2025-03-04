@@ -119,13 +119,15 @@ data_slvk_vars <- mutate(data_slvk_vars,
 sum(is.na(data_slvk_vars))
 
 data_slvk_vars <- data_slvk_vars %>%
-  mutate(across(-c(id, age), as.factor))
+  mutate(across(c(ideology, income), as.factor))
 
 # Impute missing values using Random Forest
-data_slvk_vars <- missForest(as.data.frame(data_slvk_vars))
+data_slvk_vars_imputed <- missForest(as.data.frame(data_slvk_vars))
 
 # Convert back to tibble
-data_slvk_vars <- as_tibble(data_slvk_vars$ximp)
+data_slvk_vars_imputed <- as_tibble(data_slvk_vars_imputed$ximp)
+
+sum(is.na(data_slvk_vars_imputed))
 
 # First, let's see what columns we have
 print("Column names in data_slvk_vars:")
