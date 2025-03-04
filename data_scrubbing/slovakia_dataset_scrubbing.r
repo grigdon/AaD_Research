@@ -39,9 +39,9 @@ vars <- c("id", "male", "age", "educ", "capital", "ideology", "income", "DemPolG
           "DemonstrateTrad", "DemonstrateNational", "PetitionSameSex", "VoteFarRight", "VotePrevFarRight",
           "ideologyLC", "SocialMediaUse", "InternetUse", "SlovakNationality", "FAMincome", "Nationalist",
           "EconGrievenceRetro", "EconGrievenceProspInd", "EconGrievenceProspAgg", "EconGrievenceProspMostFams",
-          "NatPride", "RomaPartner", "RomaNeighbor", "GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner",
-          "Ukraine", "ChristianSchool", "MaleChauvinism", "LawOrder", "ChurchPolitics", "Abortion", "TradMarriage",
-          "SexbMarriage", "ChildHome", "MaleJobs", "NativeJobs", "NativeRights", "Religiosity")
+          "NatPride", "RomaPartner", "RomaNeighbor", "GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner", "Ukraine",
+          "ChristianSchool", "MaleChauvinism", "LawOrder", "ChurchPolitics", "Abortion", "TradMarriage", "SexbMarriage",
+          "ChildHome", "MaleJobs", "NativeJobs", "NativeRights", "Religiosity")
 
 # Subset and recode variables
 data_slvk_vars <- data_slvk_vars[vars]
@@ -75,5 +75,3 @@ final_data <- merge(data_slvk_vars, data_slvk_questions, by = "id")
 write_sav(final_data, "~/projects/AaD_Research/datasets/scrubbed_datasets/slvk_scrubbed.sav")
 
 rm(list = ls())
-
-df <- read_sav("~/projects/AaD_Research/datasets/scrubbed_datasets/slvk_scrubbed.sav")

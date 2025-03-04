@@ -15,10 +15,10 @@ library(ggplot2)
 library(tidyr)
 
 #============================================
-# 1. Data Loading and Initial Processing
+# 1. Data Loading and Initial Processing for Slovakia
 #============================================
 
-SKdata <- read_sav("~/projects/AaD_Research/datasets/scrubbed_datasets/slvk_scrubbed.sav")
+SKdata <- read_sav("~/projects/AaD_Research/datasets/scrubbed_datasets/slovakia_scrubbed_dataset.sav")
 
 # Define questions for the endorsement experiment
 questions <- c("id", "q10a_control", "q10b_control", "q10c_control", 
@@ -28,12 +28,31 @@ questions <- c("id", "q10a_control", "q10b_control", "q10c_control",
 data_slvk_questions <- SKdata[questions]
 
 # Define variables to keep
-vars <- c("id", "male", "age", "educ", "capital", "income", 
-          "ideology", "DemPolGrievance", "PolicyPolGriavance",
-          "EconGrievenceRetro", "EconGrievenceProspInd", "EconGrievenceProspAgg",
-          "NatPride", "NativeRights", "NativeJobs", "LawOrder", "Chauvinism",
-          "ChristianSchool", "GayNeighbor", "GayPartner", "ForNeighbor",
-          "ForPartner", "Ukraine", "DemonstrateNational", "DemonstrateTrad")
+vars <- c("id", "male", "age", "educ", "capital", "ideology", "income", "DemPolGrievance", "PolicyPolGrievance",
+      "DemonstrateTrad", "DemonstrateNational", "PetitionSameSex", "VoteFarRight", "VotePrevFarRight",
+      "ideologyLC", "SocialMediaUse", "InternetUse", "SlovakNationality", "FAMincome", "Nationalist",
+      "EconGrievanceRetro", "EconGrievanceProspInd", "EconGrievanceProspAgg", "EconGrievanceProspMostFams",
+      "NatPride", "RomaPartner", "RomaNeighbor", "GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner", "Ukraine",
+      "ChristianSchool", "MaleChauvinism", "LawOrder", "ChurchPolitics", "Abortion", "TradMarriage", "SexbMarriage",
+      "ChildHome", "MaleJobs", "NativeJobs", "NativeRights", "Religiosity")
 
 # Subset and recode variables
 data_slvk_vars <- SKdata[vars]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
