@@ -28,8 +28,8 @@ questions <- c("id", "q10a_control", "q10b_control", "q10c_control",
 data_slvk_questions <- SKdata[questions]
 
 # Define variables to keep
-vars <- c("id", "gender", "age", "education", "is_capital", "income", 
-          "ideology", "DemPolGrievence", "PolicyPolGrievence",
+vars <- c("id", "male", "age", "educ", "capital", "income", 
+          "ideology", "DemPolGrievance", "PolicyPolGriavance",
           "EconGrievenceRetro", "EconGrievenceProspInd", "EconGrievenceProspAgg",
           "NatPride", "NativeRights", "NativeJobs", "LawOrder", "Chauvinism",
           "ChristianSchool", "GayNeighbor", "GayPartner", "ForNeighbor",
