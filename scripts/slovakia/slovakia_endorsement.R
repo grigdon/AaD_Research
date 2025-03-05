@@ -541,7 +541,7 @@ if(length(successful_plots) > 0) {
     message(paste("Saved publication figure", page, "to:", output_path))
   }
   
-  # Create a comprehensive figure for all variables
+  # Create a comprehensive figure for all variables.
   all_vars_plot <- ggarrange(
     plotlist = successful_plots,
     ncol = 3,
