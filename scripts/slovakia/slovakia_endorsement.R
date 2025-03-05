@@ -318,111 +318,128 @@ calculate_marginal_effects <- function(
   return(result)
 }
 
-# Updated plot function with more flexible labeling
+# Improved plotting function for box and whisker plots
 plot_marginal_effects <- function(effects_data, covariate_name) {
-  # Enhanced variable labeling
-  var_label <- ifelse(
-    covariate_name %in% names(custom_labels),
-    custom_labels[covariate_name],
-    gsub("([[:lower:]])([[:upper:]])", "\\1 \\2", covariate_name)
-  )
   
-  # Publication-quality plotting theme
-  publication_theme <- theme_minimal() +
+  # Prepare plot data
+  plot_data <- effects_data
+  
+  # Set color palette
+  my_colors <- c("#1f77b4", "#ff7f0e", "#2ca02c")
+  
+  # Create box and whisker plot
+  p <- ggplot(plot_data, aes(x = category, y = median, fill = endorser)) +
+    geom_boxplot(
+      aes(
+        ymin = q025,
+        lower = q250,
+        middle = median,
+        upper = q750,
+        ymax = q975
+      ),
+      stat = "identity",
+      width = 0.7,
+      position = position_dodge(width = 0.8)
+    ) +
+    labs(
+      title = paste("Effect of", gsub("([[:lower:]])([[:upper:]])", "\\1 \\2", covariate_name), "on Militia Support"),
+      subtitle = "Across three different policy domains (95% confidence intervals)",
+      x = paste(gsub("([[:lower:]])([[:upper:]])", "\\1 \\2", covariate_name)),
+      y = "Probability of Support"
+    ) +
+    scale_fill_manual(values = my_colors, labels = question_labels) +
+    scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2)) +
+    theme_minimal(base_size = 12) +
     theme(
-      text = element_text(family = "serif", size = 12),
-      axis.title = element_text(size = 12),
-      axis.text = element_text(size = 10),
-      axis.text.x = element_text(angle = 45, hjust = 1),
-      plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
-      plot.margin = margin(t = 10, r = 20, b = 10, l = 20),
+      legend.position = "bottom",
+      legend.title = element_blank(),
       panel.grid.minor = element_blank(),
-      panel.grid.major = element_line(color = "gray90"),
-      panel.border = element_rect(color = "gray80", fill = NA, size = 0.5)
+      panel.border = element_rect(color = "grey80", fill = NA, linewidth = 0.5),
+      axis.text.x = element_text(angle = 45, hjust = 1)
     )
   
-  # Create publication-quality plot with enhanced aesthetics
-  ggplot(effects_data, aes(x = category, y = median)) +
-    geom_ribbon(aes(ymin = q025, ymax = q975), fill = "gray80", alpha = 0.3) +
-    geom_line(group = 1, color = "gray50", linetype = "dashed", size = 0.5) +
-    geom_point(size = 3, color = "#4682B4") +
-    geom_errorbar(aes(ymin = q250, ymax = q750), width = 0.2, color = "#4682B4", size = 0.8) +
-    labs(
-      title = paste("Effect of", var_label, "on Support for Militia"),
-      x = var_label,
-      y = "Predicted Probability of Support"
-    ) +
-    scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2)) +
-    publication_theme
+  return(p)
 }
 
-# Main execution function with error handling and logging
-generate_marginal_effects_plots <- function(
-    model_out, 
-    covariates_of_interest, 
-    output_dir = "publication_plots"
-) {
-  # Create output directory if it doesn't exist
-  if(!dir.exists(output_dir)) {
-    dir.create(output_dir, recursive = TRUE)
-  }
+# Sets a list to be populated with the generated plots.
+plots_list <- list()
+successful_covs <- character(0)
+
+# Process each covariate
+for(cov in covariates_of_interest) {
+  message(paste("Processing covariate:", cov))
   
-  # Initialize plots list
-  plots_list <- list()
+  # Try to calculate marginal effects with error handling
+  effects <- tryCatch({
+    calculate_marginal_effects(
+      endorse_object, 
+      cov, 
+      values = c(-1.5, -0.5, 0.5, 1.5)  # Values corresponding to categorical levels
+    )
+  }, error = function(e) {
+    message(paste("Error calculating effects for", cov, ":", e$message))
+    return(NULL)
+  })
   
-  # Process each covariate
-  for(cov in covariates_of_interest) {
-    tryCatch({
-      # Attempt to calculate marginal effects
-      effects <- calculate_marginal_effects(model_out, cov)
-      
-      # Create plot if successful
-      plots_list[[cov]] <- plot_marginal_effects(effects, cov)
-      
-      message(paste("Successfully processed marginal effects for:", cov))
+  # Generate and store plot if effects were calculated successfully
+  if(!is.null(effects)) {
+    plots_list[[cov]] <- tryCatch({
+      plot <- plot_marginal_effects(effects, cov)
+      successful_covs <- c(successful_covs, cov)
+      message(paste("Successfully processed:", cov))
+      plot
     }, error = function(e) {
-      warning(paste("Failed to process", cov, ":", e$message))
+      message(paste("Error plotting effects for", cov, ":", e$message))
+      return(NULL)
     })
   }
+}
+
+# Filter out unsuccessful plots
+successful_plots <- plots_list[!sapply(plots_list, is.null)]
+
+# Save plots to output directory
+if(length(successful_plots) > 0) {
+  message(paste("Creating combined plots with", length(successful_plots), "successful plots"))
   
-  # Save individual and combined plots
-  if(length(plots_list) > 0) {
-    # Save individual plots
-    for(cov in names(plots_list)) {
-      ggsave(
-        filename = file.path(output_dir, paste0("marginal_effect_", cov, ".pdf")),
-        plot = plots_list[[cov]],
-        width = 8,
-        height = 6,
-        device = cairo_pdf,
-        dpi = 300
-      )
-    }
-    
-    # Create combined plots
-    if(length(plots_list) > 1) {
-      combined_plot <- ggarrange(
-        plotlist = plots_list, 
-        ncol = 2, 
-        nrow = ceiling(length(plots_list)/2),
-        common.legend = TRUE,
-        legend = "bottom",
-        labels = LETTERS[1:length(plots_list)]
-      )
-      
-      ggsave(
-        filename = file.path(output_dir, "combined_marginal_effects.pdf"),
-        plot = combined_plot,
-        width = 12,
-        height = 8,
-        device = cairo_pdf,
-        dpi = 300
-      )
-    }
-    
-    return(plots_list)
-  } else {
-    warning("No marginal effect plots could be generated.")
-    return(NULL)
+  # Create output directory if it doesn't exist
+  output_dir <- file.path(getwd(), "outputs_boxplots")
+  if(!dir.exists(output_dir)) {
+    dir.create(output_dir)
   }
+  
+  # Save individual plots
+  for(cov in names(successful_plots)) {
+    output_path <- file.path(output_dir, paste0("marginal_effect_", cov, ".pdf"))
+    ggsave(output_path, successful_plots[[cov]], width = 8, height = 6)
+    message(paste("Saved individual plot to:", output_path))
+  }
+  
+  # Create combined plots, 4 per page
+  n_plots <- length(successful_plots)
+  plots_per_page <- 4
+  n_pages <- ceiling(n_plots / plots_per_page)
+  
+  for(page in 1:n_pages) {
+    start_idx <- (page-1) * plots_per_page + 1
+    end_idx <- min(page * plots_per_page, n_plots)
+    
+    if(start_idx > n_plots) break
+    
+    page_plots <- successful_plots[start_idx:end_idx]
+    
+    combined_plot <- ggarrange(
+      plotlist = page_plots, 
+      ncol = 2, 
+      nrow = ceiling(length(page_plots)/2),
+      common.legend = TRUE,
+      legend = "bottom"
+    )
+    
+    output_path <- file.path(output_dir, paste0("marginal_effects_boxplots_page", page, ".pdf"))
+    ggsave(output_path, combined_plot, width = 16, height = 12)
+    message(paste("Saved combined plot page", page, "to:", output_path))
+  }
+} else {
+  warning("No successful plots were generated! Check the model structure and variable names.")
 }

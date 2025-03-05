@@ -1,0 +1,983 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2821
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fnil\fcharset0 .AppleSystemUIFontMonospaced-Regular;}
+{\colortbl;\red255\green255\blue255;\red74\green80\blue93;\red155\green162\blue177;\red136\green185\blue102;
+\red197\green136\blue83;\red255\green255\blue255;\red13\green100\blue1;\red0\green0\blue0;\red20\green0\blue196;
+\red181\green0\blue19;\red151\green0\blue126;\red72\green168\blue181;}
+{\*\expandedcolortbl;;\cssrgb\c36078\c38824\c43922;\cssrgb\c67059\c69804\c74902;\cssrgb\c59608\c76471\c47451;
+\cssrgb\c81961\c60392\c40000;\cssrgb\c100000\c100000\c100000;\cssrgb\c0\c45490\c0;\csgray\c0;\cssrgb\c10980\c0\c81176;
+\cssrgb\c76863\c10196\c8627;\cssrgb\c66667\c5098\c56863;\cssrgb\c33725\c71373\c76078;}
+\margl1440\margr1440\vieww19240\viewh11560\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 \
+# Gabe Rigdon - Testing RScript - V5\
+#Siroky modified March 5, 2025 \
+\
+#####Czechia Data Analysis############################\
+\
+# Load required packages\
+library(endorse)\
+# library(tidyverse) \
+library(haven)\
+library(ggpubr)\
+library(missForest)\
+library(forcats)\
+library(reshape2)\
+library(readxl)\
+library(dplyr)\
+library(ggplot2)\
+library(tidyr)\
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+\cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 #============================================\
+# 1. Data Loading and Initial Processing: SLOVAKIA\
+#============================================\
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f1\fs26 \cf2 # Load the survey data\
+\
+library(haven)\
+\
+CZDataMOD1 <- read_dta("~/Dropbox/ArmedDangerousMPSA/Data/Czechia/data-Czechia/CZDataMOD1.dta")\
+\
+View(CZDataMOD1)\
+\
+#check missing - none if IVs\
+colSums(is.na(CZDataMOD1))\
+\cf3 \
+\
+\cf2 # Define and select relevant columns for the endorsement experiment\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 \
+questions <- c("CD","Q10AA
+\f1\fs26 \cf4 _control_reversed
+\f0\fs24 \cf0 ", "Q10AB
+\f1\fs26 \cf4 _control_reversed
+\f0\fs24 \cf0 ", "Q10AC
+\f1\fs26 \cf4 _control_reversed
+\f0\fs24 \cf0 ", "Q10BA
+\f1\fs26 \cf4 _experiment_reversed
+\f0\fs24 \cf0 ", "Q10BB
+\f1\fs26 \cf4 _experiment_reversed
+\f0\fs24 \cf0 ", "Q10BC
+\f1\fs26 \cf4 _experiment_reversed
+\f0\fs24 \cf0 ")\
+\
+#label_map <- c("Q10AA" = "Spending on Roma_control",\
+               "Q10BA" = "Spending on Roma_experiment",\
+               "Q10AB" = "Euroscepticism_control",\
+               "Q10BB" = "Euroscepticism_experiment",\
+               "Q10AC" = "Laxer Gun Control_control",\
+               "Q10BC" = "Laxer Gun Control_experiment\'94)\
+\
+##OLD WAY: \
+#data_cz_questions <- 
+\f1\fs26 \cf2 CZDataMOD1
+\f0\fs24 \cf0 [questions]\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f1\fs26 \cf3 \
+data_cz_questions <- \cf2 CZDataMOD1\cf3 [ , questions]
+\f0\fs24 \cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+\
+===================\
+Treatment effects\
+====================\
+\
+# Two-sample t test with equal variances NS for any policies\
+\
+\
+#============================================\
+# 2. Variable Preparation and Recoding\
+#============================================\
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f1\fs26 \cf2 # Select relevant columns for analysis\cf3 \
+data_cz_vars <- \cf2 CZDataMOD1\cf3  %>%\
+  select(\
+    CD, Male, Age, Education, Capital, IdeologyLR, Income, FamIncome, DemPolGrievance, PolicyPolGrievance,\
+    EconGrievanceRetro, EconGrievanceProspInd, EconGrievanceProspAgg, EconGrievanceProspMostFams,\
+    GayNeighbor, GayFamily, ForNeighbor, ForPartner, Ukraine,\
+    NativeJobs, NativeRights, Religiosity, VoteFarRight\
+  )\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 \
+\
+# Define variables to keep\
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f1\fs26 \cf3 vars <- c("CD", "Male", "Age", "Education", "Capital", "IdeologyLR", "Income", "FamIncome", "DemPolGrievance", "PolicyPolGrievance",\
+  "EconGrievanceRetro", "EconGrievanceProspInd", "EconGrievanceProspAgg", "EconGrievanceProspMostFams",\
+  "GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner", "Ukraine",\
+  "NativeJobs", "NativeRights", "Religiosity", "VoteFarRight")
+\fs22 \cf3 \
+\
+\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 \
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f1\fs26 \cf2 # Subset variables using dplyr's select function\cf3 \
+data_cz_vars <- data_cz_vars %>%\
+  select(all_of(vars))
+\f0\fs24 \cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+\
+\
+# Convert all variables to numeric\
+data_cz_vars <- mutate(data_cz_vars, across(everything(), ~as.numeric(.)))\
+\
+\
+\
+#============================================\
+# 3. Missing Data Imputation - This section not need for Slovakia, which has no NA in the DV, but may be useful for other countries. In Slovakia, there are also no NA in the new data - income and ideology where imputed prior to loading\
+#============================================\
+\
+###OLD####\
+# Impute missing values using Random Forest\
+#data_slvk_imp <- missForest(as.data.frame(data_slvk_vars))\
+#data_slvk_vars <- as_tibble(data_slvk_imp$ximp)\
+# First, let's see what columns we have\
+#print("Column names in data_slvk_vars:")\
+#print(names(data_slvk_vars))\
+# Get the number of columns (excluding the ID column which is column 1)\
+#n_cols <- ncol(data_slvk_vars)\
+# Standardize all variables except the ID column\
+#data_slvk_vars <- mutate(data_slvk_vars, across(2:n_cols, ~ as.vector(scale(.))))\
+###OLD####\
+\
+\
+#NEW VERSION#\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f1\fs26 \cf3 \
+n_cols <- ncol(data_cz_vars) - \cf5 1\cf3 \
+\
+data_cz_vars <- mutate(data_cz_vars, across(all_of(\cf5 2\cf3 :n_cols), ~ as.vector(scale(.))))
+\f0\fs24 \cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+# Verify the standardization worked\
+print("Summary of standardized variables:")\
+print(summary(data_cz_vars))\
+\
+#VoteFarRght didn\'92t seem to standardize, but everything did and has mean 0\
+#May need to unstandardized for ME plots - GR\
+\
+#============================================\
+# 4. Endorsement Experiment Setup\
+#============================================\
+\
+# Merge the questions and standardized variables datasets\
+data_cz <- left_join(data_cz_questions, data_cz_vars, by = "CD")\
+\
+# Create named list for response questions\
+Y <- list(Q1 = c("Q10AA
+\f1\fs26 \cf4 _control_reversed
+\f0\fs24 \cf0 ", "Q10BA
+\f1\fs26 \cf4 _experiment_reversed
+\f0\fs24 \cf0 "), \
+          Q2 = c("Q10AB
+\f1\fs26 \cf4 _control_reversed
+\f0\fs24 \cf0 ", "Q10BB
+\f1\fs26 \cf4 _experiment_reversed
+\f0\fs24 \cf0 "), \
+          Q3 = c("Q10AC
+\f1\fs26 \cf4 _control_reversed
+\f0\fs24 \cf0 ", "Q10BC
+\f1\fs26 \cf4 _experiment_reversed
+\f0\fs24 \cf0 "))\
+\
+\
+#label_map <- c("Q10AA" = "Spending on Roma_control",\
+#               "Q10BA" = "Spending on Roma_experiment",\
+  #             "Q10AB" = "Euroscepticism_control",\
+    #           "Q10BB" = "Euroscepticism_experiment",\
+      #         "Q10AC" = "Laxer Gun Control_control",\
+        #       "Q10BC" = "Laxer Gun Control_experiment\'94)\
+\
+\
+\
+#============================================\
+# 5. Model Fitting\
+#============================================\
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f1\fs26 \cf3 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 # Fit the full endorsement model (reduced w/o traditionalism variables)\
+endorseFULL1b <- endorse(Y = Y, \
+                        data = 
+\f1\fs26 \cf2 CZDataMOD1
+\f0\fs24 \cf0 , \
+                        identical.lambda = FALSE, \
+                        covariates = TRUE, \
+                        formula.indiv = formula(~ Age + Male + Education + \
+                                                  Capital + IdeologyLR + Income + \
+                                                  DemPolGrievance + PolicyPolGrievance + \
+                                                  EconGrievanceRetro + EconGrievanceProspInd + \
+                                                  EconGrievanceProspAgg + \
+                                                  NativeRights + NativeJobs + \
+                                                  DemonstrateNational + \
+                                                  GayNeighbor + \
+                                                  GayFamily + ForNeighbor + \
+                                                  ForPartner + Ukraine + VoteFarRight + FamIncome + Religiosity\
+                        ), \
+                        hierarchical = FALSE)\
+\
+\
+####CoefficientPlots for model1a#####\
+\
+df <- data.frame(as.matrix(endorseFULL1a$delta))\
+\
+ci <- data.frame(variables = colnames(df[2:23]), mean = apply(df[2:23], 2, mean), sd = apply(df[2:23], 2, sd))\
+\
+ci <- mutate(ci, max = mean + 1.96 * sd, min = mean - 1.96 * sd)\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f1\fs26 \cf3 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf3 \
+ci$variables <- c("Age", "Male", "Education", "Capital", "Conservative ideology", "Individual income", \
+                  "Political grievance (democracy)", "Political grievance (policy)", \
+                  "Economic grievance (retrospective-ind)", "Economic grievance (prospective-ind)", \
+                  "Economic grievance (prospective-agg)", "Native rights", "Native jobs", \
+                  "Demonstrated for national values", "Anti-Gay neighbor", "Anti-Gay family member", \
+                  "Anti-Foreigner neighbor", "Anti-Foreigner partner", "Anti-Ukrainian refugee", \
+                  "Far Right Voter", "Family income", "Religiosity")\cf0 \
+\
+ci <- mutate(ci, variables= fct_reorder(variables, mean))\
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f1\fs26 \cf3 ggplot(ci, aes(x = variables, y = mean)) + \
+    geom_point() + \
+    geom_errorbar(aes(ymin = min, ymax = max)) + \
+    coord_flip() + \
+    geom_abline(slope = 0, intercept = 0, color = "red") + \
+    ggtitle("Support Narodni domobrana (National Homeguard)") + \
+    theme(\
+        plot.title = element_text(hjust = 0),\
+        plot.margin = margin(l = 5, r = 5, t = 10, b = 10)  # Moved inside theme()\
+    ) + \
+    labs(x = NULL)
+\f0\fs24 \cf0 \
+\pard\pardeftab720\partightenfactor0
+
+\fs36 \cf0 \cb6 \expnd0\expndtw0\kerning0
+\
+
+\fs24 \cb1 \kerning1\expnd0\expndtw0 ###NEW###\
+
+\fs36 \cb6 \expnd0\expndtw0\kerning0
+###alternative coefplot approach - mostly the same but the far right voter is now significant whereas in the previous model it overlaps slightly with the zero line.\
+\
+library(ggplot2)\
+\
+# Create the dataframe\
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f1\fs26 \cf7 \cb1 \kerning1\expnd0\expndtw0 # Create ci with lower and upper bounds first\cf8 \
+ci <- data.frame(\
+    mean = apply(endorseFULL1a$delta, \cf9 2\cf8 , mean),\
+    lower = apply(endorseFULL1a$delta, \cf9 2\cf8 , quantile, \cf9 0.025\cf8 ),\
+    upper = apply(endorseFULL1a$delta, \cf9 2\cf8 , quantile, \cf9 0.975\cf8 )\
+)\
+\
+\cf7 # Add variable names to ci\cf8 \
+ci$variable <- rownames(ci)\
+\pard\pardeftab720\partightenfactor0
+
+\f0\fs36 \cf0 \cb6 \expnd0\expndtw0\kerning0
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f1\fs26 \cf7 \cb1 \kerning1\expnd0\expndtw0 # Remove Intercept row if it exists\cf8 \
+ci <- ci[!grepl(\cf10 "Intercept"\cf8 , ci$variable), ]\
+\
+\cf7 # Ensure lower and upper exist before creating min and max\cf8 \
+\cf11 if\cf8  (\cf10 "lower"\cf8  %in% names(ci) && \cf10 "upper"\cf8  %in% names(ci)) \{\
+    ci <- ci %>%\
+        mutate(min = lower,  \cf7 # Create min column from lower\cf8 \
+               max = upper)  \cf7 # Create max column from upper\cf8 \
+\} \cf11 else\cf8  \{\
+    stop(\cf10 "Columns 'lower' and 'upper' are missing in 'ci'."\cf8 )\
+\}\
+\
+\cf7 # Print a summary to check if it worked\cf8 \
+print(head(ci))
+\f0\fs36 \cf0 \cb6 \expnd0\expndtw0\kerning0
+\
+\pard\pardeftab720\partightenfactor0
+\cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\fs24 \cf0 \cb1 \kerning1\expnd0\expndtw0 ci <- data.frame(variables = colnames(df[2:23]), mean = apply(df[2:23], 2, mean), sd = apply(df[2:23], 2, sd))\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\fs36 \cf0 \cb6 \expnd0\expndtw0\kerning0
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\fs24 \cf3 \cb1 \kerning1\expnd0\expndtw0 #######ci$variables <- c("Age", "Male", "Education", "Capital", "Conservative ideology", "Individual income", \
+                  "Political grievance (democracy)", "Political grievance (policy)", \
+                  "Economic grievance (retrospective-ind)", "Economic grievance (prospective-ind)", \
+                  "Economic grievance (prospective-agg)", "Native rights", "Native jobs", \
+                  "Demonstrated for national values", "Anti-Gay neighbor", "Anti-Gay family member", \
+                  "Anti-Foreigner neighbor", "Anti-Foreigner partner", "Anti-Ukrainian refugee", \
+                  "Far Right Voter", "Family income", "Religiosity")\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\fs36 \cf0 \cb6 \expnd0\expndtw0\kerning0
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f1\fs26 \cf8 \cb1 \kerning1\expnd0\expndtw0 \
+
+\f0\fs36 \cf0 \cb6 \expnd0\expndtw0\kerning0
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\fs24 \cf0 \cb1 \kerning1\expnd0\expndtw0 ci <- mutate(ci, variables= fct_reorder(variables, mean))\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\fs36 \cf0 \cb6 \expnd0\expndtw0\kerning0
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f1\fs26 \cf7 \cb1 \kerning1\expnd0\expndtw0 # Create min and max columns if they do not exist\cf8 \
+\cf11 if\cf8  (!(\cf10 "min"\cf8  %in% names(ci) && \cf10 "max"\cf8  %in% names(ci))) \{\
+    ci <- ci %>%\
+        mutate(min = mean - \cf9 1.96\cf8  * sd,  \cf7 # Assuming 95% CI using sd\cf8 \
+               max = mean + \cf9 1.96\cf8  * sd)\
+\}\
+\
+\cf7 # Create the plot\cf8 \
+library(ggplot2)\
+\
+ggplot(ci, aes(x = variables, y = mean)) + \
+    geom_point() + \
+    geom_errorbar(aes(ymin = min, ymax = max)) +  \cf7 # Uses the new min and max columns\cf8 \
+    geom_vline(xintercept = \cf9 0\cf8 , linetype = \cf10 "dashed"\cf8 , color = \cf10 "red"\cf8 ) +\
+    theme_minimal() + \
+    geom_abline(slope = \cf9 0\cf8 , intercept = \cf9 0\cf8 , color = \cf10 "red"\cf8 ) +\
+    coord_flip() +  \
+    ggtitle(\cf10 "Support for Narodni domobrana (National homeguard)"\cf8 ) +  \
+    theme(plot.title = element_text(hjust = \cf9 0.5\cf8 )) + \
+    labs(x = \cf11 NULL\cf8 )\cf3 \
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 ####END\
+\
+#==================================================================================================================================\
+#  Trying to create a slightly different plot with the variables sorted within groups that are stacked on top of one another  in the following order\
+#==================================================================================================================================\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f1\fs26 \cf3 \
+# an example is at the bottom of this page where the left most column shows the category/group and then to the right it shows the variable and within each category/group it is sorted by mean - \
+# https://milosdjeric.com/f-sort-regression-coef-plot.html#this_is_betterworse_than_this_plot\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+\cf3 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 #########group definitions#####\
+\
+SES Demographics\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f1\fs26 \cf4 age"\cf3 , \cf4 "male"\cf3 , \cf4 "educ"\cf3 , \cf4 "capital"\cf3 , \cf4 "ideology"\cf3 , \cf4 "income"\cf3 , \cf4 "FAMincome"\cf3 ,\
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 Political and Economic Grievances (State Failure to provide pol-econ public goods)\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f1\fs26 \cf4 "DemPolGrievance"\cf3 , \cf4 "PolicyPolGrievance"\cf3 ,
+\f0\fs24 \cf0 \
+
+\f1\fs26 \cf4 "EconGrievanceRetro"\cf3 , \cf4 "EconGrievanceProspInd"\cf3 , \cf4 "EconGrievanceProspAgg"\cf3 ,
+\f0\fs24 \cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+Nationalism\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f1\fs26 \cf4 "NatPride\'94, "NativeRights"\cf3 , \cf4 "NativeJobs"\cf3 , \cf4 "DemonstrateNational"\cf3 ,  \cf4 "SlovakNationality"\cf3 , \cf4 "Nationalist"\cf3 , \cf4 "VoteFarRight"
+\f0\fs24 \cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+Traditionalism\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f1\fs26 \cf4 "LawOrder"\cf3 , \cf4 "MaleChauvinism"\cf3 , \cf4 "ChristianSchool"\cf3 , \cf4 "DemonstrateTrad"\cf3 , \cf4 "Religiosity"\cf3 \
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 Boundary Maintenance/Xenophobia/Prejudice
+\f1\fs26 \cf3 \
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+\cf4 "GayNeighbor"\cf3 , \cf4 "GayFamily"\cf3 , \cf4 "ForNeighbor"\cf3 , \cf4 "ForPartner"\cf3 , \cf4 "Ukraine"\cf3 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 \
+#first try at R code to display the effects within the following group variables, sorted by mean (like it is now) within each grouping. Groups are defined as \'93SES Demographics\'94, \'93State Failure: Political and Economic Grievances\'94, \'93Nationalism\'94, \'93Traditionalism\'94, \'93Boundary Maintenance/Xenophobia/Prejudice\'93:\
+\
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f1\fs26 \cf2 # Define groups for the variables\cf3 \
+ci <- ci %>%\
+  mutate(\
+    group = case_when(\
+      variables %in% c(\cf4 "age"\cf3 , \cf4 "male"\cf3 , \cf4 "educ"\cf3 , \cf4 "capital"\cf3 , \cf4 "ideology"\cf3 , \cf4 "income"\cf3 , \cf4 "FAMincome"\cf3 ) ~ \cf4 "SES Demographics"\cf3 ,\
+      variables %in% c(\cf4 "DemPolGrievance"\cf3 , \cf4 "PolicyPolGrievance"\cf3 , \cf4 "EconGrievanceRetro"\cf3 , \cf4 "EconGrievanceProspInd"\cf3 , \cf4 "EconGrievanceProspAgg"\cf3 ) ~ \cf4 "State Failure: Political and Economic Grievances"\cf3 ,\
+      variables %in% c(\cf4 "NatPride"\cf3 , \cf4 "NativeRights"\cf3 , \cf4 "NativeJobs"\cf3 , \cf4 "DemonstrateNational"\cf3 , \cf4 "SlovakNationality"\cf3 , \cf4 "Nationalist"\cf3 , \cf4 "VoteFarRight"\cf3 ) ~ \cf4 "Nationalism"\cf3 ,\
+      variables %in% c(\cf4 "LawOrder"\cf3 , \cf4 "MaleChauvinism"\cf3 , \cf4 "ChristianSchool"\cf3 , \cf4 "DemonstrateTrad"\cf3 , \cf4 "Religiosity"\cf3 ) ~ \cf4 "Traditionalism"\cf3 ,\
+      variables %in% c(\cf4 "GayNeighbor"\cf3 , \cf4 "GayFamily"\cf3 , \cf4 "ForNeighbor"\cf3 , \cf4 "ForPartner"\cf3 , \cf4 "Ukraine"\cf3 ) ~ \cf4 "Boundary Maintenance/Xenophobia/Prejudice"\cf3 ,\
+      \cf12 TRUE\cf3  ~ \cf4 "Other"\cf3 \
+    )\
+  ) %>%\
+  mutate(variables = fct_reorder(variables, mean))  \cf2 # Reorder variables by mean\cf3 \
+\
+\cf2 # Create the plot\cf3 \
+ggplot(ci, aes(x = variables, y = mean)) + \
+  geom_point() + \
+  geom_errorbar(aes(ymin = min, ymax = max)) + \
+  coord_flip() + \
+  geom_abline(slope = \cf5 0\cf3 , intercept = \cf5 0\cf3 , color = \cf4 "red"\cf3 ) + \
+  ggtitle(\cf4 "Slovakia Model"\cf3 ) + \
+  theme(plot.title = element_text(hjust = \cf5 0.5\cf3 )) + \
+  facet_wrap(~group, scales = \cf4 "free_y"\cf3 )  \cf2 # Facet by group with independent y-axis scales
+\f0\fs24 \cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+\
+##second attempt\
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f1\fs26 \cf2 # Define groups for the variables\cf3 \
+ci <- ci %>%\
+  mutate(\
+    group = case_when(\
+      variables %in% c(\cf4 "age"\cf3 , \cf4 "male"\cf3 , \cf4 "educ"\cf3 , \cf4 "capital"\cf3 , \cf4 "ideology"\cf3 , \cf4 "income"\cf3 , \cf4 "FAMincome"\cf3 ) ~ \cf4 "SES Demographics"\cf3 ,\
+      variables %in% c(\cf4 "DemPolGrievance"\cf3 , \cf4 "PolicyPolGrievance"\cf3 , \cf4 "EconGrievanceRetro"\cf3 , \cf4 "EconGrievanceProspInd"\cf3 , \cf4 "EconGrievanceProspAgg"\cf3 ) ~ \cf4 "State Failure: Political and Economic Grievances"\cf3 ,\
+      variables %in% c(\cf4 "NatPride"\cf3 , \cf4 "NativeRights"\cf3 , \cf4 "NativeJobs"\cf3 , \cf4 "DemonstrateNational"\cf3 , \cf4 "SlovakNationality"\cf3 , \cf4 "Nationalist"\cf3 , \cf4 "VoteFarRight"\cf3 ) ~ \cf4 "Nationalism"\cf3 ,\
+      variables %in% c(\cf4 "LawOrder"\cf3 , \cf4 "MaleChauvinism"\cf3 , \cf4 "ChristianSchool"\cf3 , \cf4 "DemonstrateTrad"\cf3 , \cf4 "Religiosity"\cf3 ) ~ \cf4 "Traditionalism"\cf3 ,\
+      variables %in% c(\cf4 "GayNeighbor"\cf3 , \cf4 "GayFamily"\cf3 , \cf4 "ForNeighbor"\cf3 , \cf4 "ForPartner"\cf3 , \cf4 "Ukraine"\cf3 ) ~ \cf4 "Boundary Maintenance/Xenophobia/Prejudice"\cf3 ,\
+      \cf12 TRUE\cf3  ~ \cf4 "Other"\cf3 \
+    )\
+  ) %>%\
+  mutate(variables = fct_reorder(variables, mean))  \cf2 # Reorder variables by mean\cf3 \
+\
+\cf2 # Create the plot\cf3 \
+ggplot(ci, aes(x = variables, y = mean, color = group)) + \
+  geom_point() + \
+  geom_errorbar(aes(ymin = min, ymax = max)) + \
+  coord_flip() + \
+  geom_abline(slope = \cf5 0\cf3 , intercept = \cf5 0\cf3 , color = \cf4 "red"\cf3 ) + \
+  ggtitle(\cf4 "Slovakia Model"\cf3 ) + \
+  theme(plot.title = element_text(hjust = \cf5 0.5\cf3 )) +\
+  theme(legend.position = \cf4 "bottom"\cf3 )  \cf2 # Position the legend at the bottom
+\f0\fs24 \cf0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+\
+\
+#third attempt\
+\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f1\fs26 \cf2 # Define groups for the variables\cf3 \
+ci <- ci %>%\
+  mutate(\
+    group = case_when(\
+      variables %in% c(\cf4 "age"\cf3 , \cf4 "male"\cf3 , \cf4 "educ"\cf3 , \cf4 "capital"\cf3 , \cf4 "ideology"\cf3 , \cf4 "income"\cf3 , \cf4 "FAMincome"\cf3 ) ~ \cf4 "SES Demographics"\cf3 ,\
+      variables %in% c(\cf4 "DemPolGrievance"\cf3 , \cf4 "PolicyPolGrievance"\cf3 , \cf4 "EconGrievanceRetro"\cf3 , \cf4 "EconGrievanceProspInd"\cf3 , \cf4 "EconGrievanceProspAgg"\cf3 ) ~ \cf4 "State Failure: Political and Economic Grievances"\cf3 ,\
+      variables %in% c(\cf4 "NatPride"\cf3 , \cf4 "NativeRights"\cf3 , \cf4 "NativeJobs"\cf3 , \cf4 "DemonstrateNational"\cf3 , \cf4 "SlovakNationality"\cf3 , \cf4 "Nationalist"\cf3 , \cf4 "VoteFarRight"\cf3 ) ~ \cf4 "Nationalism"\cf3 ,\
+      variables %in% c(\cf4 "LawOrder"\cf3 , \cf4 "MaleChauvinism"\cf3 , \cf4 "ChristianSchool"\cf3 , \cf4 "DemonstrateTrad"\cf3 , \cf4 "Religiosity"\cf3 ) ~ \cf4 "Traditionalism"\cf3 ,\
+      variables %in% c(\cf4 "GayNeighbor"\cf3 , \cf4 "GayFamily"\cf3 , \cf4 "ForNeighbor"\cf3 , \cf4 "ForPartner"\cf3 , \cf4 "Ukraine"\cf3 ) ~ \cf4 "Boundary Maintenance/Xenophobia/Prejudice"\cf3 ,\
+      \cf12 TRUE\cf3  ~ \cf4 "Other"\cf3 \
+    )\
+  ) %>%\
+  \cf2 # Reorder the variables within each group by their mean value\cf3 \
+  mutate(variables = fct_reorder(variables, mean))  \
+\
+\cf2 # Create the plot\cf3 \
+ggplot(ci, aes(x = variables, y = mean, color = group)) + \
+  geom_point() + \
+  geom_errorbar(aes(ymin = min, ymax = max)) + \
+  coord_flip() + \
+  geom_abline(slope = \cf5 0\cf3 , intercept = \cf5 0\cf3 , color = \cf4 "red"\cf3 ) + \
+  ggtitle(\cf4 "Slovakia Model"\cf3 ) + \
+  theme(plot.title = element_text(hjust = \cf5 0.5\cf3 )) +\
+  facet_wrap(~group, scales = \cf4 "free_y"\cf3 ) +  \cf2 # Separate the groups into facets\cf3 \
+  theme(legend.position = \cf4 "none"\cf3 ,  \cf2 # Hide the legend to avoid repetition\cf3 \
+        strip.text.x = element_text(size = \cf5 12\cf3 , face = \cf4 "bold"\cf3 ))  \cf2 # Format the facet labels\
+\
+##fourth attempt\
+\
+# Define groups for the variables\cf3 \
+ci <- ci %>%\
+  mutate(\
+    group = case_when(\
+      variables %in% c(\cf4 "age"\cf3 , \cf4 "male"\cf3 , \cf4 "educ"\cf3 , \cf4 "capital"\cf3 , \cf4 "ideology"\cf3 , \cf4 "income"\cf3 , \cf4 "FAMincome"\cf3 ) ~ \cf4 "SES Demographics"\cf3 ,\
+      variables %in% c(\cf4 "DemPolGrievance"\cf3 , \cf4 "PolicyPolGrievance"\cf3 , \cf4 "EconGrievanceRetro"\cf3 , \cf4 "EconGrievanceProspInd"\cf3 , \cf4 "EconGrievanceProspAgg"\cf3 ) ~ \cf4 "State Failure: Political and Economic Grievances"\cf3 ,\
+      variables %in% c(\cf4 "NatPride"\cf3 , \cf4 "NativeRights"\cf3 , \cf4 "NativeJobs"\cf3 , \cf4 "DemonstrateNational"\cf3 , \cf4 "SlovakNationality"\cf3 , \cf4 "Nationalist"\cf3 , \cf4 "VoteFarRight"\cf3 ) ~ \cf4 "Nationalism"\cf3 ,\
+      variables %in% c(\cf4 "LawOrder"\cf3 , \cf4 "MaleChauvinism"\cf3 , \cf4 "ChristianSchool"\cf3 , \cf4 "DemonstrateTrad"\cf3 , \cf4 "Religiosity"\cf3 ) ~ \cf4 "Traditionalism"\cf3 ,\
+      variables %in% c(\cf4 "GayNeighbor"\cf3 , \cf4 "GayFamily"\cf3 , \cf4 "ForNeighbor"\cf3 , \cf4 "ForPartner"\cf3 , \cf4 "Ukraine"\cf3 ) ~ \cf4 "Boundary Maintenance/Xenophobia/Prejudice"\cf3 ,\
+      \cf12 TRUE\cf3  ~ \cf4 "Other"\cf3 \
+    )\
+  ) %>%\
+  \cf2 # Reorder the variables within each group by their mean value\cf3 \
+  mutate(variables = fct_reorder(variables, mean)) %>%\
+  \cf2 # Create a numeric y-position for each group to stack them\cf3 \
+  group_by(group) %>%\
+  mutate(y_position = row_number()) %>%\
+  ungroup()\
+\
+\cf2 # Create the plot\cf3 \
+ggplot(ci, aes(x = variables, y = y_position, color = group)) + \
+  geom_point(aes(y = y_position), size = \cf5 3\cf3 ) + \
+  geom_errorbar(aes(ymin = y_position - \cf5 0.2\cf3 , ymax = y_position + \cf5 0.2\cf3 )) + \
+  coord_flip() + \
+  geom_abline(slope = \cf5 0\cf3 , intercept = \cf5 0\cf3 , color = \cf4 "red"\cf3 ) + \
+  ggtitle(\cf4 "Slovakia Model"\cf3 ) + \
+  theme(plot.title = element_text(hjust = \cf5 0.5\cf3 )) +\
+  facet_wrap(~group, scales = \cf4 "free_y"\cf3 ) + \
+  theme(legend.position = \cf4 "none"\cf3 ,  \
+        strip.text.x = element_text(size = \cf5 12\cf3 , face = \cf4 "bold"\cf3 ),\
+        axis.text.x = element_text(angle = \cf5 45\cf3 , hjust = \cf5 1\cf3 )) \cf2 # Customize axis labels\
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 \
+\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f1\fs26 \cf3 \
+\pard\tx560\tx1120\tx1680\tx2240\tx2800\tx3360\tx3920\tx4480\tx5040\tx5600\tx6160\tx6720\pardirnatural\partightenfactor0
+\cf3 ggplot(ci, aes(x = variables, y = mean)) + \
+  geom_point() + \
+  geom_errorbar(aes(ymin = min, ymax = max)) + \
+  coord_flip() + \
+  geom_abline(slope = \cf5 0\cf3 , intercept = \cf5 0\cf3 , color = \cf4 "red"\cf3 ) + \
+  ggtitle(\cf4 "Slovakia Model"\cf3 ) + \
+  theme(plot.title = element_text(hjust = \cf5 0.5\cf3 ))\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 \
+\
+\
+\
+#============================================\
+# 6. Improved Marginal Effects Analysis - no more Siroky edits from here\
+#============================================\
+\
+# Completely rewritten calculate_marginal_effects function with clear parameter handling\
+calculate_marginal_effects <- function(model, covariate_name, values = c(-2, -1, 0, 1, 2)) \{\
+  # Get model information\
+  item_names <- names(model$call$Y)\
+  num_items <- length(item_names)\
+  \
+  # Initialize results container\
+  all_results <- data.frame()\
+  \
+  # Find parameter columns for this covariate across all items\
+  lambda_cols <- colnames(model$lambda)\
+  \
+  # Loop through items\
+  for (item in 1:num_items) \{\
+    # Find parameter name for this covariate in this item\
+    param_name <- paste0(covariate_name, ".", item, ".1")\
+    \
+    # Check if parameter exists\
+    if (!(param_name %in% lambda_cols)) \{\
+      warning(paste("Parameter", param_name, "not found in model"))\
+      next\
+    \}\
+    \
+    # Find intercept for this item\
+    intercept_name <- paste0("(Intercept).", item, ".1")\
+    if (!(intercept_name %in% lambda_cols)) \{\
+      warning(paste("Intercept parameter", intercept_name, "not found in model"))\
+      next\
+    \}\
+    \
+    # Get variance parameter for this item\
+    omega2_name <- paste0("omega2.", item, ".1")\
+    if (!(omega2_name %in% colnames(model$omega2))) \{\
+      warning(paste("Variance parameter", omega2_name, "not found in model"))\
+      next\
+    \}\
+    \
+    # Get posterior samples\
+    n_samples <- nrow(model$lambda)\
+    intercept_samples <- model$lambda[, intercept_name]\
+    coef_samples <- model$lambda[, param_name]\
+    variance_samples <- model$omega2[, omega2_name]\
+    \
+    # For each value of the covariate\
+    for (value in values) \{\
+      # Calculate linear predictor for each posterior sample\
+      linear_pred <- intercept_samples + coef_samples * value\
+      \
+      # Calculate probability of support for each sample\
+      prob_samples <- numeric(n_samples)\
+      for (i in 1:n_samples) \{\
+        prob_samples[i] <- pnorm(0, mean = linear_pred[i], sd = sqrt(variance_samples[i]), \
+                                 lower.tail = FALSE)\
+      \}\
+      \
+      # Compute summary statistics\
+      prob_median <- median(prob_samples)\
+      prob_lower <- quantile(prob_samples, 0.025)\
+      prob_upper <- quantile(prob_samples, 0.975)\
+      \
+      # Create and add row to results\
+      result_row <- data.frame(\
+        covariate = covariate_name,\
+        value = value,\
+        item = item_names[item],\
+        prob_support = prob_median,\
+        lower_ci = prob_lower, \
+        upper_ci = prob_upper\
+      )\
+      \
+      all_results <- rbind(all_results, result_row)\
+    \}\
+  \}\
+  \
+  # Check if we got any results\
+  if (nrow(all_results) == 0) \{\
+    warning(paste("No successful calculations for", covariate_name))\
+    return(data.frame())  # Return empty data frame\
+  \}\
+  \
+  return(all_results)\
+\}\
+\
+# Improved plotting function with better error handling and formatting\
+plot_marginal_effects <- function(effects_data, covariate_name) \{\
+  # Check if we have data to plot\
+  if (nrow(effects_data) == 0) \{\
+    warning(paste("No data to plot for", covariate_name))\
+    return(NULL)\
+  \}\
+  \
+  # Create plot\
+  p <- ggplot(effects_data, aes(x = value, y = prob_support, group = item, color = item)) +\
+    geom_line(size = 1) +\
+    geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci, fill = item), alpha = 0.2, color = NA) +\
+    labs(x = paste("Standardized", covariate_name),\
+         y = "Probability of Support",\
+         title = paste("Effect of", covariate_name, "on Militia Support")) +\
+    theme_minimal() +\
+    theme(legend.position = "bottom",\
+          legend.title = element_text(size = 10),\
+          legend.text = element_text(size = 8),\
+          plot.title = element_text(size = 12, face = "bold")) +\
+    ylim(0, 1)  # Probability is bounded between 0 and 1\
+  \
+  return(p)\
+\}\
+\
+#============================================\
+# 7. Execute Marginal Effects Analysis - In PROGRESS\
+#============================================\
+# Define covariates of interest with comprehensive selection\
+covariates_of_interest <- c(\
+  "age", "gender", "education", "is_capital", "income",\
+  "ideology", "DemPolGrievence", "PolicyPolGrievence",\
+  "EconGrievenceRetro", "EconGrievenceProspInd", "EconGrievenceProspAgg", \
+  "NatPride", "NativeRights", "NativeJobs", "Chauvinism", "DemonstrateNational", "DemonstrateTrad",\
+  "LawOrder", "ChristianSchool", "GayNeighbor", "GayPartner", "ForNeighbor", "ForPartner", "Ukraine"\
+)\
+\
+# Create output directory\
+dir.create("outputs", showWarnings = FALSE)\
+\
+# Print model structure information for debugging\
+cat("Model formula:\\n")\
+print(endorseFULL1$call$formula.indiv)\
+\
+cat("\\nFirst few rows of model matrix:\\n")\
+print(head(endorseFULL1$model.matrix.indiv[, 1:5]))\
+\
+cat("\\nParameter naming pattern example:\\n")\
+print(head(colnames(endorseFULL1$lambda), 10))\
+\
+# Process covariates with enhanced error handling\
+plots_list <- list()\
+for (cov in covariates_of_interest) \{\
+  cat("\\n=== Processing", cov, "===\\n")\
+  \
+  tryCatch(\{\
+    # Calculate marginal effects\
+    cat("Calculating marginal effects...\\n")\
+    effects <- calculate_marginal_effects(endorseFULL1, cov)\
+    \
+    # Check if we got results\
+    if (nrow(effects) == 0) \{\
+      cat("No effects calculated for", cov, "\\n")\
+      next\
+    \}\
+    \
+    # Print summary of results\
+    cat("Summary of calculated effects:\\n")\
+    print(summary(effects$prob_support))\
+    \
+    # Create plot\
+    cat("Creating plot...\\n")\
+    plot <- plot_marginal_effects(effects, cov)\
+    \
+    # Store if successful\
+    if (!is.null(plot)) \{\
+      plots_list[[cov]] <- plot\
+      cat("Successfully created plot for", cov, "\\n")\
+      \
+      # Save individual plot\
+      output_path <- file.path(getwd(), "outputs", paste0("marginal_effect_", cov, ".pdf"))\
+      ggsave(output_path, plot, width = 8, height = 6)\
+      cat("Saved plot to:", output_path, "\\n")\
+    \}\
+  \}, error = function(e) \{\
+    cat("ERROR processing", cov, ":", e$message, "\\n")\
+    cat("Error traceback:\\n")\
+    print(traceback())\
+  \})\
+\}\
+\
+# Only combine plots that were successfully created\
+successful_plots <- plots_list[!sapply(plots_list, is.null)]\
+if (length(successful_plots) > 0) \{\
+  cat("\\nCreating combined plot with", length(successful_plots), "successful plots\\n")\
+  \
+  # Determine sensible layout based on number of plots\
+  n_plots <- length(successful_plots)\
+  n_cols <- min(3, n_plots)\
+  n_rows <- ceiling(n_plots / n_cols)\
+  \
+  # Create combined plot with appropriate layout\
+  combined_plot <- ggarrange(plotlist = successful_plots, \
+                             ncol = n_cols, \
+                             nrow = n_rows,\
+                             common.legend = TRUE)\
+  \
+  # Save the combined plot\
+  output_path <- file.path(getwd(), "outputs", "marginal_effects_combined.pdf")\
+  ggsave(output_path, combined_plot, \
+         width = 4 * n_cols, \
+         height = 4 * n_rows)\
+  cat("Saved combined plot to:", output_path, "\\n")\
+\} else \{\
+  cat("\\nWARNING: No successful plots were generated!\\n")\
+  \
+  # Final diagnostic information \
+  cat("\\n--- Final Diagnostic Information ---\\n")\
+  cat("Parameter names in lambda (first 30):\\n")\
+  print(head(colnames(endorseFULL1$lambda), 30))\
+  \
+  cat("\\nParameter names in omega2:\\n")\
+  print(colnames(endorseFULL1$omega2))\
+  \
+  cat("\\nModel matrix column names:\\n")\
+  print(colnames(endorseFULL1$model.matrix.indiv))\
+  \
+  cat("\\nModel call structure:\\n")\
+  print(str(endorseFULL1$call))\
+\}\
+\
+# Save model object for future reference\
+saveRDS(endorseFULL1, file.path(getwd(), "outputs", "endorsement_model.rds"))\
+\
+cat("\\n=== Analysis Complete ===\\n")\
+cat("Results are saved in the 'outputs' directory\\n")\
+\
+\
+\
+\
+\
+\
+\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\
+\
+\'97\'97\'97\'97\'97\'97\'97\'97\'97PREVIOUS CODE (JAN 2025)!!!!!!!!!!!!!!!!!!!!!!!!!!!!\'97\'97\'97\'97\'97\'97\'97\
+title: "Slovakia-test"\
+output: html_document\
+date: "2024-05-09"\
+---\
+\
+```\{r setup, include=FALSE\}\
+knitr::opts_chunk$set(echo = TRUE)\
+```\
+  \
+```\{r\}\
+#|warning: FALSE\
+library(endorse)\
+library(tidyverse)\
+library(haven)\
+library(ggpubr)\
+library(missForest)\
+library(forcats)\
+library(reshape2)\
+\
+data_slvk <- read_sav("C:/Users/qingy/Dropbox/ArmedDangerousMPSA (1)/Data/Slovakia 2-this is where the better sav file is - the one had an issue parsing so i unzipped it again and it was fine/data-Slovakia/data_April2022.sav")\
+questions <- c("id","q10a_control", "q10b_control", "q10c_control", "q10a_experiment", "q10b_experiment", "q10c_experiment")\
+data_slvk_questions <- data_slvk[questions]\
+data_slvk_questions <- mutate(data_slvk_questions, across(2:7, ~ recode(as.numeric(.),\
+                                          `1` = 4L,\
+                                          `2` = 3L,\
+                                          `3` = 2L,\
+                                          `4` = 1L)\
+                                   )\
+                            )\
+\
+```\
+\
+```\{r\}\
+#|warning: FALSE\
+prop <- function(x, y)\{\
+  return(sum(x == y, na.rm=TRUE)/sum(!is.na(x), na.rm = TRUE))\
+\}\
+h <- data.frame("Strongly Disagree" = apply(data_slvk_questions[2:7], 2, prop, y = 1),\
+                "Disagree" = apply(data_slvk_questions[2:7], 2, prop, y = 2),\
+                "Agree" = apply(data_slvk_questions[2:7], 2, prop, y = 3),\
+                "Strongly Agree" = apply(data_slvk_questions[2:7], 2, prop, y = 4)\
+                )\
+h <- rownames_to_column(h)\
+h$rowname <- factor(h$rowname, levels = c("q10a_control", "q10a_experiment", "q10b_control", "q10b_experiment", "q10c_control", "q10c_experiment"))\
+mh <- melt(h)\
+endorse_plot <- ggplot()+ geom_bar(data = mh, aes(x = rowname, y=value, fill= variable), position="stack", stat="identity")+ coord_flip() +  theme(legend.position="bottom") + ggtitle("Slovakia Endorsement") + xlab("Question") + ylab("Percent Response") + labs(fill = "Response")\
+endorse_plot\
+```\
+\
+\
+\
+```\{r\}\
+data_slvk_vars <- mutate(data_slvk,\
+                  id = id,       \
+                  gender = r1,\
+                  age = r2pov,\
+                  education = r4,\
+                  is_capital = recode(as.integer(r13),\
+                                   `1` = 1L,\
+                                   .default = 0L),\
+                  ideology = recode(as.integer(y1),\
+                                  `1` = 1L,\
+                                  `2` = 2L,\
+                                  `3` = 3L,\
+                                  `4` = 4L,\
+                                  `5` = 5L,\
+                                  `9` = 99L),\
+                  income = recode(as.integer(r11b),\
+                                  `0` = 0L,\
+                                  `1` = 1L,\
+                                  `2` = 2L,\
+                                  `3` = 3L,\
+                                  `4` = 4L,\
+                                  `5` = 5L,\
+                                  `99` = 99L),\
+                  DemPolGrievence = q4a,\
+                  PolicyPolGrievence = q4b,\
+                  EUPolGrievence = q4c,\
+                  EconGrievenceRetro = q5a,\
+                  EconGrievenceProspInd = q5b,\
+                  EconGrievenceProspAgg = q5c,\
+                  NatPride = q7,\
+                  NativeRights = q9a,\
+                  NativeJobs = q9m,\
+                  LawOrder = q9e,\
+                  Chauvinism = q9d,\
+                  ChristianSchool = q9c,\
+                  GayNeighbor = q8c,\
+                  GayPartner = q8d,\
+                  ForNeighbor = q8e,\
+                  ForPartner = q8f,\
+                  Ukraine = q8g,\
+                  DemonstrateNational = q12b,\
+                  DemonstrateTrad = q12a\
+                  )\
+vars <- c("id", "gender", "age", "education", "is_capital", "income", "ideology", "DemPolGrievence","PolicyPolGrievence","EUPolGrievence","EconGrievenceRetro","EconGrievenceProspInd","EconGrievenceProspAgg","NatPride","NativeRights", \
+"NativeJobs","LawOrder","Chauvinism","ChristianSchool","GayNeighbor","GayPartner","ForNeighbor","ForPartner","Ukraine", "DemonstrateNational", "DemonstrateTrad")\
+data_slvk_vars <- data_slvk_vars[vars]\
+data_slvk_vars <- mutate(data_slvk_vars, across(14:24, ~ recode(as.numeric(.),\
+                                         `1` = 4L,\
+                                         `2` = 3L,\
+                                         `3` = 2L,\
+                                         `4` = 1L)\
+                                         )\
+                         )\
+data_slvk_vars <- mutate(data_slvk_vars, across(everything(), ~as.numeric(.)))\
+data_slvk_vars <- mutate(data_slvk_vars, across(6:26, ~ifelse(. %in% c(99, 9), NA, .)))\
+```\
+\
+```\{r\}\
+data_slvk_imp <- missForest(as.data.frame(data_slvk_vars))\
+data_slvk_vars <- as_tibble(data_slvk_imp$ximp)\
+data_slvk_vars <- mutate(data_slvk_vars, across(2:26, ~ as.vector(scale(.))))\
+data_slvk <- as_tibble(merge(data_slvk_vars, data_slvk_questions, by = "id"))\
+Y <- list(Q1 = c("q10a_control", "q10a_experiment"), Q2 = c("q10b_control", "q10b_experiment"), Q3 = c("q10c_control", "q10c_experiment"))\
+```\
+\
+\
+```\{r\}\
+#|warning: FALSE\
+endorse <- endorse(Y = Y, data = data_slvk, identical.lambda = FALSE, covariates = TRUE, formula.indiv = formula( ~ age + gender + education + is_capital + ideology + income), hierarchical = FALSE)\
+```\
+```\{r\}\
+df <- data.frame(as.matrix(endorse$delta))\
+ci <- data.frame(variables = colnames(df[2:7]), mean = apply(df[2:7], 2, mean), sd = apply(df[2:7], 2, sd))\
+ci <- mutate(ci, max = mean + 1.96 * sd, min = mean - 1.96 * sd)\
+ci$variables <- c("Age", "Gender", "Education", "Capital", "Ideology", "Income")\
+ci <- mutate(ci, variables= fct_reorder(variables, mean))\
+ggplot(ci, aes(x = variables, y = mean)) + geom_point() + geom_errorbar(aes(ymin = min, ymax = max)) + coord_flip() + geom_abline(slope = 0, intercept = 0, color = "red") + ggtitle("Model 1: Background Characterstics") + theme(plot.title = element_text(hjust = 0.5)) + ylim(-0.5, 0.5)\
+```\
+\
+```\{r\}\
+endorseFULL <- endorse(Y = Y, data = data_slvk, identical.lambda = FALSE, covariates = TRUE, formula.indiv = formula( ~ age + gender + education + is_capital + ideology + income + DemPolGrievence + PolicyPolGrievence + EUPolGrievence + EconGrievenceRetro + EconGrievenceProspInd + EconGrievenceProspAgg + NatPride + NativeRights + NativeJobs + DemonstrateNational + LawOrder + Chauvinism + ChristianSchool + DemonstrateTrad + GayNeighbor+ GayPartner+ ForNeighbor + ForPartner + Ukraine), hierarchical = FALSE)\
+```\
+\
+```\{r\}\
+df <- data.frame(as.matrix(endorseFULL$delta))\
+ci <- data.frame(variables = colnames(df[2:26]), mean = apply(df[2:26], 2, mean), sd = apply(df[2:26], 2, sd))\
+ci <- mutate(ci, max = mean + 1.96 * sd, min = mean - 1.96 * sd)\
+ci$variables <- c("Age", "Gender", "Education", "Capital", "Ideology", "Income", "DemPolGrievence", "PolicyPolGrievence", "EUPolGrievence", "EconGrievenceRetro", "EconGrievenceProspInd", "EconGrievenceProspAgg", "NatPride", "NativeRights", "NativeJobs", "DemonstrateNational", "LawOrder", "Chauvinism", "ChristianSchool", "DemonstrateTrad", "GayNeighbor", "GayPartner", "ForNeighbor", "ForPartner", "Ukraine")\
+ci <- mutate(ci, variables= fct_reorder(variables, mean))\
+ggplot(ci, aes(x = variables, y = mean)) + geom_point() + geom_errorbar(aes(ymin = min, ymax = max)) + coord_flip() + geom_abline(slope = 0, intercept = 0, color = "red") + ggtitle("Model 2: Full Model") + theme(plot.title = element_text(hjust = 0.5)) \
+```\
+\
+```\{r\}\
+df <- data.frame(as.matrix(endorseFULL$delta))\
+ci <- data.frame(variables = colnames(df[2:26]), mean = apply(df[2:26], 2, mean), sd = apply(df[2:26], 2, sd))\
+ci <- mutate(ci, max = mean + 1.65 * sd, min = mean - 1.65 * sd)\
+ci$variables <- c("Age", "Gender", "Education", "Capital", "Ideology", "Income", "DemPolGrievence", "PolicyPolGrievence", "EUPolGrievence", "EconGrievenceRetro", "EconGrievenceProspInd", "EconGrievenceProspAgg", "NatPride", "NativeRights", "NativeJobs", "DemonstrateNational", "LawOrder", "Chauvinism", "ChristianSchool", "DemonstrateTrad", "GayNeighbor", "GayPartner", "ForNeighbor", "ForPartner", "Ukraine")\
+ci <- mutate(ci, variables= fct_reorder(variables, mean))\
+ggplot(ci, aes(x = variables, y = mean)) + geom_point() + geom_errorbar(aes(ymin = min, ymax = max)) + coord_flip() + geom_abline(slope = 0, intercept = 0, color = "red") + ggtitle("Model 2: Full Model") + theme(plot.title = element_text(hjust = 0.5)) \
+```\
+\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97END of previous code\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\'97\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \
+\
+\
+\
+}
