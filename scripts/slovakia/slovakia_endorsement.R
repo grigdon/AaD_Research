@@ -194,15 +194,48 @@ covariates_of_interest <- c("age", "male", "educ", "capital", "ideology", "incom
                             "NativeJobs", "DemonstrateNational", "SlovakNationality", "Nationalist", 
                             "VoteFarRight", "LawOrder", "MaleChauvinism", "ChristianSchool", "DemonstrateTrad",
                             "Religiosity", "GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner", "Ukraine"
-                            )
+)
+
+# Variable labels for publication
+variable_labels <- c(
+  "age" = "Age", 
+  "male" = "Gender",
+  "educ" = "Education Level",
+  "capital" = "Capital Resident",
+  "ideology" = "Political Ideology",
+  "income" = "Personal Income",
+  "FAMincome" = "Family Income",
+  "DemPolGrievance" = "Democratic Political Grievance",
+  "PolicyPolGrievance" = "Policy Political Grievance",
+  "EconGrievenceRetro" = "Economic Grievance (Retrospective)",
+  "EconGrievenceProspInd" = "Economic Grievance (Prospective Individual)",
+  "EconGrievenceProspAgg" = "Economic Grievance (Prospective Aggregate)",
+  "NatPride" = "National Pride",
+  "NativeRights" = "Native Rights Support",
+  "NativeJobs" = "Native Jobs Priority",
+  "DemonstrateNational" = "National Demonstration Support",
+  "SlovakNationality" = "Slovak Nationality",
+  "Nationalist" = "Nationalist Identity",
+  "VoteFarRight" = "Far-Right Voting",
+  "LawOrder" = "Law and Order Support",
+  "MaleChauvinism" = "Male Chauvinism",
+  "ChristianSchool" = "Christian School Support",
+  "DemonstrateTrad" = "Traditional Values Demonstration",
+  "Religiosity" = "Religious Devotion",
+  "GayNeighbor" = "Acceptance of Gay Neighbors",
+  "GayFamily" = "Acceptance of Gay Family Members",
+  "ForNeighbor" = "Acceptance of Foreign Neighbors",
+  "ForPartner" = "Acceptance of Foreign Partners",
+  "Ukraine" = "Ukraine Support"
+)
 
 # Expanded covariates categorization
 binary_covariates <- list(
-  gender = list(
+  male = list(
     values = c(1, 2),
     labels = c("Male", "Female")
   ),
-  is_capital = list(
+  capital = list(
     values = c(1, 2),
     labels = c("Not Capital", "Capital")
   ),
@@ -318,17 +351,24 @@ calculate_marginal_effects <- function(
   return(result)
 }
 
-# Improved plotting function for box and whisker plots
+# Improved plotting function for publication-ready plots
 plot_marginal_effects <- function(effects_data, covariate_name) {
   
   # Prepare plot data
   plot_data <- effects_data
   
-  # Set color palette
-  my_colors <- c("#1f77b4", "#ff7f0e", "#2ca02c")
+  # Get formatted variable name for display
+  var_label <- ifelse(
+    covariate_name %in% names(variable_labels),
+    variable_labels[covariate_name],
+    gsub("([[:lower:]])([[:upper:]])", "\\1 \\2", covariate_name)
+  )
+  
+  # Set color palette - publication-quality colors
+  box_color <- "#2c7fb8"  # Professional blue
   
   # Create box and whisker plot
-  p <- ggplot(plot_data, aes(x = category, y = median, fill = endorser)) +
+  p <- ggplot(plot_data, aes(x = category, y = median)) +
     geom_boxplot(
       aes(
         ymin = q025,
@@ -339,31 +379,69 @@ plot_marginal_effects <- function(effects_data, covariate_name) {
       ),
       stat = "identity",
       width = 0.7,
-      position = position_dodge(width = 0.8)
+      position = position_dodge(width = 0.8),
+      fill = box_color,
+      alpha = 0.7,
+      color = "black"
     ) +
     labs(
-      title = paste("Effect of", gsub("([[:lower:]])([[:upper:]])", "\\1 \\2", covariate_name), "on Militia Support"),
-      subtitle = "Across three different policy domains (95% confidence intervals)",
-      x = paste(gsub("([[:lower:]])([[:upper:]])", "\\1 \\2", covariate_name)),
-      y = "Probability of Support"
+      title = var_label,
+      subtitle = "Effect on Militia Support Probability",
+      x = NULL,
+      y = "Probability of Support",
+      caption = "Note: Boxes show 50% credible intervals; whiskers show 95% credible intervals."
     ) +
-    scale_fill_manual(values = my_colors, labels = question_labels) +
-    scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2)) +
-    theme_minimal(base_size = 12) +
+    scale_y_continuous(
+      limits = c(0, 1), 
+      breaks = seq(0, 1, 0.2),
+      labels = function(x) paste0(x*100, "%")
+    ) +
+    theme_bw(base_size = 12) +
     theme(
-      legend.position = "bottom",
-      legend.title = element_blank(),
+      text = element_text(family = "serif"),
       panel.grid.minor = element_blank(),
-      panel.border = element_rect(color = "grey80", fill = NA, linewidth = 0.5),
-      axis.text.x = element_text(angle = 45, hjust = 1)
+      panel.grid.major.x = element_blank(),
+      panel.border = element_rect(color = "black", fill = NA, size = 0.5),
+      axis.text = element_text(color = "black"),
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      plot.title = element_text(face = "bold", size = 13),
+      plot.subtitle = element_text(size = 11),
+      plot.caption = element_text(size = 9, hjust = 1),
+      legend.position = "none",
+      plot.margin = margin(10, 10, 10, 10)
     )
   
   return(p)
 }
 
-# Sets a list to be populated with the generated plots.
+# Process each covariate
 plots_list <- list()
 successful_covs <- character(0)
+
+# Try with dummy data if no model is loaded
+# Comment this section out if you have a real model loaded
+if(!exists("endorse_object")) {
+  message("No model found, creating dummy data for demonstration")
+  # Create dummy model object for demonstration
+  endorse_object <- list()
+  
+  # Create dummy delta matrix (coefficients)
+  delta_post <- matrix(rnorm(1000 * length(covariates_of_interest)), 
+                       nrow = 1000, 
+                       ncol = length(covariates_of_interest))
+  colnames(delta_post) <- covariates_of_interest
+  endorse_object$delta <- delta_post
+  
+  # Create dummy omega2 matrix
+  omega2_post <- matrix(rchisq(1000 * 3, df = 2), nrow = 1000, ncol = 3)
+  colnames(omega2_post) <- c("omega2.1.1", "omega2.2.1", "omega2.3.1")
+  endorse_object$omega2 <- omega2_post
+  
+  # Create dummy lambda matrix
+  lambda_post <- matrix(rnorm(1000 * 3), nrow = 1000, ncol = 3)
+  colnames(lambda_post) <- c("lambda.1", "lambda.2", "lambda.3")
+  endorse_object$lambda <- lambda_post
+}
 
 # Process each covariate
 for(cov in covariates_of_interest) {
@@ -374,7 +452,8 @@ for(cov in covariates_of_interest) {
     calculate_marginal_effects(
       endorse_object, 
       cov, 
-      values = c(-1.5, -0.5, 0.5, 1.5)  # Values corresponding to categorical levels
+      values = NULL,  # Will use appropriate values based on variable type
+      labels = NULL   # Will use appropriate labels based on variable type
     )
   }, error = function(e) {
     message(paste("Error calculating effects for", cov, ":", e$message))
@@ -400,19 +479,26 @@ successful_plots <- plots_list[!sapply(plots_list, is.null)]
 
 # Save plots to output directory
 if(length(successful_plots) > 0) {
-  message(paste("Creating combined plots with", length(successful_plots), "successful plots"))
+  message(paste("Creating publication-quality plots with", length(successful_plots), "variables"))
   
   # Create output directory if it doesn't exist
-  output_dir <- file.path(getwd(), "outputs_boxplots")
+  output_dir <- file.path("~/projects/AaD_Research/output/plots/slovakia")
   if(!dir.exists(output_dir)) {
-    dir.create(output_dir)
+    dir.create(output_dir, recursive = TRUE)
+  }
+  
+  # Load necessary packages for plot arrangement
+  if(!require(ggpubr)) {
+    message("Installing ggpubr package for plot arrangement")
+    install.packages("ggpubr")
+    library(ggpubr)
   }
   
   # Save individual plots
   for(cov in names(successful_plots)) {
     output_path <- file.path(output_dir, paste0("marginal_effect_", cov, ".pdf"))
-    ggsave(output_path, successful_plots[[cov]], width = 8, height = 6)
-    message(paste("Saved individual plot to:", output_path))
+    ggsave(output_path, successful_plots[[cov]], width = 7, height = 5, dpi = 300)
+    message(paste("Saved publication-quality plot to:", output_path))
   }
   
   # Create combined plots, 4 per page
@@ -433,13 +519,41 @@ if(length(successful_plots) > 0) {
       ncol = 2, 
       nrow = ceiling(length(page_plots)/2),
       common.legend = TRUE,
-      legend = "bottom"
+      legend = "bottom",
+      labels = LETTERS[1:length(page_plots)]  # Add panel labels A, B, C, D
     )
     
-    output_path <- file.path(output_dir, paste0("marginal_effects_boxplots_page", page, ".pdf"))
-    ggsave(output_path, combined_plot, width = 16, height = 12)
-    message(paste("Saved combined plot page", page, "to:", output_path))
+    # Add figure title and caption for publication
+    combined_plot <- annotate_figure(
+      combined_plot,
+      top = text_grob(
+        paste("Figure", page, ": Predictors of Militia Support"),
+        face = "bold", size = 14, family = "serif"
+      ),
+      bottom = text_grob(
+        "Note: Estimates show predicted probability of militia support across levels of each variable.",
+        hjust = 0, x = 0, size = 10, family = "serif", face = "italic"
+      )
+    )
+    
+    output_path <- file.path(output_dir, paste0("Figure", page, "_MarginalEffects.pdf"))
+    ggsave(output_path, combined_plot, width = 10, height = 8, dpi = 300)
+    message(paste("Saved publication figure", page, "to:", output_path))
   }
+  
+  # Create a comprehensive figure for all variables
+  all_vars_plot <- ggarrange(
+    plotlist = successful_plots,
+    ncol = 3,
+    nrow = ceiling(length(successful_plots)/3),
+    common.legend = TRUE,
+    legend = "bottom"
+  )
+  
+  all_vars_output <- file.path(output_dir, "AllVariables_MarginalEffects.pdf")
+  ggsave(all_vars_output, all_vars_plot, width = 18, height = 14, dpi = 300, limitsize = FALSE)
+  message(paste("Saved comprehensive figure to:", all_vars_output))
+  
 } else {
   warning("No successful plots were generated! Check the model structure and variable names.")
 }
