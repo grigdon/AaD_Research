@@ -108,3 +108,5 @@ if(!dir.exists("~/projects/AaD_Research/output/plots/hungary/dist"))
 ggsave(filename = "~/projects/AaD_Research/output/plots/hungary/dist/compare_bar_graph.pdf", 
        plot = compare_bar_graph,
        width = 10, height = 7, device = "pdf")
+
+rm(list = ls())
