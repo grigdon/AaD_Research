@@ -19,7 +19,7 @@ library(Cairo)
 # 1. Data Loading and Initial Processing for Slovakia
 #====================================================
 
-SKdata <- read_sav("~/projects/AaD_Research/datasets/scrubbed_datasets/slovakia_scrubbed_dataset.sav")
+SKdata <- read_sav("~/projects/AaD_Research/datasets/scrubbed_datasets/slovakia_scrubbed.sav")
 
 # Define questions for the endorsement experiment
 questions <- c("id", "q10a_control", "q10b_control", "q10c_control", 
@@ -482,7 +482,7 @@ if(length(successful_plots) > 0) {
   message(paste("Creating publication-quality plots with", length(successful_plots), "variables"))
   
   # Create output directory if it doesn't exist
-  output_dir <- file.path("~/projects/AaD_Research/output/plots/slovakia")
+  output_dir <- file.path("~/projects/AaD_Research/output/plots/slovakia/endorse")
   if(!dir.exists(output_dir)) {
     dir.create(output_dir, recursive = TRUE)
   }
