@@ -18,11 +18,8 @@ SKdata <- read_dta("~/projects/AaD_Research/datasets/raw_datasets/slovakia_raw_d
 # Select endorsement experiment questions and reverse code responses
 questions <- c("id", "q10a_control", "q10b_control", "q10c_control", 
                "q10a_experiment", "q10b_experiment", "q10c_experiment")
-data_slvk_questions <- SKdata[questions] %>%
-  mutate(across(2:7, ~ recode(as.numeric(.), 
-                              `1` = 4L, `2` = 3L, `3` = 2L, `4` = 1L, 
-                              .default = NA_integer_)))
 
+data_slvk_questions <- SKdata[questions]
 #-----------------------------------
 # 2. Variable Preparation & Recoding
 #-----------------------------------
