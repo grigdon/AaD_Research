@@ -163,25 +163,28 @@ custom_labels <- c(
 
 
 # Create the plot
-ggplot(delta_matrix_values, aes(x = variables, y = mean)) +
-  geom_point(size = 1, shape = 10) + 
-  geom_errorbar(aes(ymin = lower, ymax = upper), width = 1, size = .25) + 
-  coord_flip() + 
-  geom_hline(yintercept = 0, color = "red", linetype = "dashed", size = 0.5) + 
-  facet_grid(category ~ ., scales = "free_y", space = "free_y") +
-  scale_x_discrete(labels = custom_labels) +
-  theme_classic() +
-  ggtitle("Model 2: Coefficient Estimates by Category") + 
-  theme(
-    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
-    axis.text.y = element_text(size = 10),
-    axis.text.x = element_text(size = 10),
-    strip.text.y = element_text(angle = 0, hjust = 0, face = "bold"),
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    panel.border = element_blank()
-  ) +
-  labs(x = NULL, y = "Coefficient Estimate")
+plot <- ggplot(delta_matrix_values, aes(x = variables, y = mean)) +
+          geom_point(size = 1, shape = 10) + 
+          geom_errorbar(aes(ymin = lower, ymax = upper), width = 1, size = .25) + 
+          coord_flip() + 
+          geom_hline(yintercept = 0, color = "red", linetype = "dashed", size = 0.5) + 
+          facet_grid(category ~ ., scales = "free_y", space = "free_y") +
+          scale_x_discrete(labels = custom_labels) +
+          theme_classic() +
+          ggtitle("Model 2: Coefficient Estimates by Category") + 
+          theme(
+            plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+            axis.text.y = element_text(size = 10),
+            axis.text.x = element_text(size = 10),
+            strip.text.y = element_text(angle = 0, hjust = 0, face = "bold"),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            panel.border = element_blank()
+          ) +
+          labs(x = NULL, y = "Coefficient Estimate")
+
+# Save to PDF
+ggsave("~/projects/AaD_Research/output/plots/slovakia/coef/slovakia_coef_plot.pdf", plot, width = 12, height = 10)
 
 #============================================
 # 4. Marginal Effects Function
@@ -351,9 +354,110 @@ calculate_marginal_effects <- function(
   return(result)
 }
 
-# Improved plotting function for publication-ready plots
-plot_marginal_effects <- function(effects_data, covariate_name) {
+# Create categorized plots function for academic publication
+create_categorized_plots <- function(plots_list, output_dir = "~/projects/AaD_Research/output/plots/slovakia/endorse") {
+  # Define categories
+  categories <- list(
+    "SES_Demographics" = c("age", "male", "educ", "capital", "ideology", "income", "FAMincome"),
+    "Political_Economic_Grievances" = c("DemPolGrievance", "PolicyPolGrievance", 
+                                        "EconGrievenceRetro", "EconGrievenceProspInd", "EconGrievenceProspAgg"),
+    "Nationalism" = c("NatPride", "NativeRights", "NativeJobs", "DemonstrateNational", 
+                      "SlovakNationality", "Nationalist", "VoteFarRight"),
+    "Traditionalism" = c("LawOrder", "MaleChauvinism", "ChristianSchool", "DemonstrateTrad", "Religiosity"),
+    "Boundary_Maintenance" = c("GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner", "Ukraine")
+  )
   
+  # Category labels for plots
+  category_labels <- c(
+    "SES_Demographics" = "Socioeconomic and Demographic Factors",
+    "Political_Economic_Grievances" = "Political and Economic Grievances",
+    "Nationalism" = "Nationalism and National Identity",
+    "Traditionalism" = "Traditionalism and Social Conservatism",
+    "Boundary_Maintenance" = "Group Boundary Maintenance"
+  )
+  
+  # Create output directory if it doesn't exist
+  if(!dir.exists(output_dir)) {
+    dir.create(output_dir, recursive = TRUE)
+  }
+  
+  # Process each category
+  for(cat_name in names(categories)) {
+    # Get variables in this category
+    cat_vars <- categories[[cat_name]]
+    
+    # Filter plots for this category
+    cat_plots <- plots_list[names(plots_list) %in% cat_vars]
+    cat_plots <- cat_plots[!sapply(cat_plots, is.null)]
+    
+    if(length(cat_plots) > 0) {
+      # Determine layout based on number of plots
+      n_plots <- length(cat_plots)
+      if(n_plots <= 4) {
+        n_col <- 2
+        n_row <- ceiling(n_plots/2)
+        width <- 8.5  # Standard journal width (inches)
+        height <- 4 * n_row
+      } else if(n_plots <= 6) {
+        n_col <- 3
+        n_row <- 2
+        width <- 8.5
+        height <- 6
+      } else {
+        n_col <- 3
+        n_row <- ceiling(n_plots/3)
+        width <- 8.5
+        height <- 3 * n_row
+      }
+      
+      # Create combined plot
+      combined_plot <- ggarrange(
+        plotlist = cat_plots, 
+        ncol = n_col, 
+        nrow = n_row,
+        common.legend = TRUE,
+        legend = "bottom"
+      )
+      
+      # Add category title
+      combined_plot <- annotate_figure(
+        combined_plot,
+        top = text_grob(
+          category_labels[cat_name],
+          face = "bold", size = 12, family = "Times"
+        )
+      )
+      
+      # Save combined plot
+      output_path <- file.path(output_dir, paste0("FigureCategory_", cat_name, ".pdf"))
+      ggsave(output_path, combined_plot, width = width, height = height, dpi = 300, units = "in")
+      message(paste("Saved category figure to:", output_path))
+      
+      # Save individual plots with improved academic formatting
+      for(var_name in names(cat_plots)) {
+        # Apply academic formatting to individual plot
+        academic_plot <- cat_plots[[var_name]] +
+          theme(
+            text = element_text(family = "Times"),
+            axis.title = element_text(size = 11),
+            axis.text = element_text(size = 10),
+            plot.title = element_text(size = 12, hjust = 0.5),
+            plot.subtitle = element_text(size = 10, hjust = 0.5),
+            panel.grid.major.y = element_line(color = "gray90", size = 0.2),
+            panel.grid.major.x = element_blank(),
+            panel.grid.minor = element_blank()
+          )
+        
+        # Save individual academic plot
+        ind_output_path <- file.path(output_dir, paste0("academic_", var_name, ".pdf"))
+        ggsave(ind_output_path, academic_plot, width = 5, height = 4, dpi = 300, units = "in")
+      }
+    }
+  }
+}
+
+# Improve the individual plot function for academic publication
+plot_marginal_effects <- function(effects_data, covariate_name) {
   # Prepare plot data
   plot_data <- effects_data
   
@@ -364,10 +468,10 @@ plot_marginal_effects <- function(effects_data, covariate_name) {
     gsub("([[:lower:]])([[:upper:]])", "\\1 \\2", covariate_name)
   )
   
-  # Set color palette - publication-quality colors
-  box_color <- "#2c7fb8"  # Professional blue
+  # Set academic color palette
+  box_color <- "#3c78d8"  # Professional blue for academic publishing
   
-  # Create box and whisker plot
+  # Create box and whisker plot with academic styling
   p <- ggplot(plot_data, aes(x = category, y = median)) +
     geom_boxplot(
       aes(
@@ -381,32 +485,28 @@ plot_marginal_effects <- function(effects_data, covariate_name) {
       width = 0.7,
       position = position_dodge(width = 0.8),
       fill = box_color,
-      alpha = 0.7,
+      alpha = 0.8,
       color = "black"
     ) +
     labs(
       title = var_label,
-      subtitle = "Effect on Militia Support Probability",
       x = NULL,
-      y = "Probability of Support",
-      caption = "Note: Boxes show 50% credible intervals; whiskers show 95% credible intervals."
+      y = "Probability of Support"
     ) +
     scale_y_continuous(
       limits = c(0, 1), 
       breaks = seq(0, 1, 0.2),
-      labels = function(x) paste0(x*100, "%")
+      labels = scales::percent_format(accuracy = 1)
     ) +
-    theme_bw(base_size = 12) +
+    theme_bw(base_size = 11) +
     theme(
-      text = element_text(family = "serif"),
+      text = element_text(family = "Times"),
       panel.grid.minor = element_blank(),
       panel.grid.major.x = element_blank(),
       panel.border = element_rect(color = "black", fill = NA, size = 0.5),
       axis.text = element_text(color = "black"),
-      axis.text.x = element_text(angle = 45, hjust = 1),
-      plot.title = element_text(face = "bold", size = 13),
-      plot.subtitle = element_text(size = 11),
-      plot.caption = element_text(size = 9, hjust = 1),
+      axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+      plot.title = element_text(face = "bold", size = 12, hjust = 0.5),
       legend.position = "none",
       plot.margin = margin(10, 10, 10, 10)
     )
@@ -414,146 +514,41 @@ plot_marginal_effects <- function(effects_data, covariate_name) {
   return(p)
 }
 
-# Process each covariate
-plots_list <- list()
-successful_covs <- character(0)
-
-# Try with dummy data if no model is loaded
-# Comment this section out if you have a real model loaded
-if(!exists("endorse_object")) {
-  message("No model found, creating dummy data for demonstration")
-  # Create dummy model object for demonstration
-  endorse_object <- list()
-  
-  # Create dummy delta matrix (coefficients)
-  delta_post <- matrix(rnorm(1000 * length(covariates_of_interest)), 
-                       nrow = 1000, 
-                       ncol = length(covariates_of_interest))
-  colnames(delta_post) <- covariates_of_interest
-  endorse_object$delta <- delta_post
-  
-  # Create dummy omega2 matrix
-  omega2_post <- matrix(rchisq(1000 * 3, df = 2), nrow = 1000, ncol = 3)
-  colnames(omega2_post) <- c("omega2.1.1", "omega2.2.1", "omega2.3.1")
-  endorse_object$omega2 <- omega2_post
-  
-  # Create dummy lambda matrix
-  lambda_post <- matrix(rnorm(1000 * 3), nrow = 1000, ncol = 3)
-  colnames(lambda_post) <- c("lambda.1", "lambda.2", "lambda.3")
-  endorse_object$lambda <- lambda_post
-}
-
-# Process each covariate
-for(cov in covariates_of_interest) {
-  message(paste("Processing covariate:", cov))
-  
-  # Try to calculate marginal effects with error handling
-  effects <- tryCatch({
-    calculate_marginal_effects(
-      endorse_object, 
-      cov, 
-      values = NULL,  # Will use appropriate values based on variable type
-      labels = NULL   # Will use appropriate labels based on variable type
-    )
-  }, error = function(e) {
-    message(paste("Error calculating effects for", cov, ":", e$message))
-    return(NULL)
-  })
-  
-  # Generate and store plot if effects were calculated successfully
-  if(!is.null(effects)) {
-    plots_list[[cov]] <- tryCatch({
-      plot <- plot_marginal_effects(effects, cov)
-      successful_covs <- c(successful_covs, cov)
-      message(paste("Successfully processed:", cov))
-      plot
-    }, error = function(e) {
-      message(paste("Error plotting effects for", cov, ":", e$message))
-      return(NULL)
-    })
-  }
-}
-
-# Filter out unsuccessful plots
-successful_plots <- plots_list[!sapply(plots_list, is.null)]
-
-# Save plots to output directory
+# To use this updated plotting approach, add this after your existing code:
 if(length(successful_plots) > 0) {
-  message(paste("Creating publication-quality plots with", length(successful_plots), "variables"))
-  
-  # Create output directory if it doesn't exist
-  output_dir <- file.path("~/projects/AaD_Research/output/plots/slovakia/endorse")
-  if(!dir.exists(output_dir)) {
-    dir.create(output_dir, recursive = TRUE)
-  }
-  
-  # Load necessary packages for plot arrangement
+  # Make sure ggpubr is loaded
   if(!require(ggpubr)) {
-    message("Installing ggpubr package for plot arrangement")
     install.packages("ggpubr")
     library(ggpubr)
   }
   
-  # Save individual plots
-  for(cov in names(successful_plots)) {
-    output_path <- file.path(output_dir, paste0("marginal_effect_", cov, ".pdf"))
-    ggsave(output_path, successful_plots[[cov]], width = 7, height = 5, dpi = 300)
-    message(paste("Saved publication-quality plot to:", output_path))
-  }
+  # Create the categorized plots
+  create_categorized_plots(successful_plots)
   
-  # Create combined plots, 4 per page
-  n_plots <- length(successful_plots)
-  plots_per_page <- 4
-  n_pages <- ceiling(n_plots / plots_per_page)
+  # Create a comprehensive appendix figure if needed
+  all_vars_output <- file.path(output_dir, "AppendixFigure_AllMarginalEffects.pdf")
   
-  for(page in 1:n_pages) {
-    start_idx <- (page-1) * plots_per_page + 1
-    end_idx <- min(page * plots_per_page, n_plots)
-    
-    if(start_idx > n_plots) break
-    
-    page_plots <- successful_plots[start_idx:end_idx]
-    
-    combined_plot <- ggarrange(
-      plotlist = page_plots, 
-      ncol = 2, 
-      nrow = ceiling(length(page_plots)/2),
-      common.legend = TRUE,
-      legend = "bottom",
-      labels = LETTERS[1:length(page_plots)]  # Add panel labels A, B, C, D
-    )
-    
-    # Add figure title and caption for publication
-    combined_plot <- annotate_figure(
-      combined_plot,
-      top = text_grob(
-        paste("Figure", page, ": Predictors of Militia Support"),
-        face = "bold", size = 14, family = "serif"
-      ),
-      bottom = text_grob(
-        "Note: Estimates show predicted probability of militia support across levels of each variable.",
-        hjust = 0, x = 0, size = 10, family = "serif", face = "italic"
-      )
-    )
-    
-    output_path <- file.path(output_dir, paste0("Figure", page, "_MarginalEffects.pdf"))
-    ggsave(output_path, combined_plot, width = 10, height = 8, dpi = 300)
-    message(paste("Saved publication figure", page, "to:", output_path))
-  }
-  
-  # Create a comprehensive figure for all variables.
-  all_vars_plot <- ggarrange(
+  # For the appendix, arrange all plots in a grid
+  all_plots <- ggarrange(
     plotlist = successful_plots,
-    ncol = 3,
-    nrow = ceiling(length(successful_plots)/3),
+    ncol = 4,
+    nrow = ceiling(length(successful_plots)/4),
     common.legend = TRUE,
     legend = "bottom"
   )
   
-  all_vars_output <- file.path(output_dir, "AllVariables_MarginalEffects.pdf")
-  ggsave(all_vars_output, all_vars_plot, width = 18, height = 14, dpi = 300, limitsize = FALSE)
-  message(paste("Saved comprehensive figure to:", all_vars_output))
+  all_plots <- annotate_figure(
+    all_plots,
+    top = text_grob(
+      "Appendix Figure 1: Marginal Effects of All Predictors on Militia Support",
+      face = "bold", size = 14, family = "Times"
+    ),
+    bottom = text_grob(
+      "Note: Boxes show 50% credible intervals; whiskers show 95% credible intervals.",
+      hjust = 0, x = 0, size = 10, family = "Times", face = "italic"
+    )
+  )
   
-} else {
-  warning("No successful plots were generated! Check the model structure and variable names.")
+  ggsave(all_vars_output, all_plots, width = 11, height = 14, dpi = 300, limitsize = FALSE)
+  message(paste("Saved appendix figure to:", all_vars_output))
 }
