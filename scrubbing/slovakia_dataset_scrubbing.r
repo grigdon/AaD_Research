@@ -13,7 +13,7 @@ library(readxl)
 # 1. Data Loading & Initial Setup
 #--------------------------------
 
-SKdata <- read_dta("~/projects/AaD_Research/datasets/raw_datasets/SLVKdataMOD1.dta")
+SKdata <- read_dta("~/projects/AaD_Research/datasets/raw_datasets/slovakia_raw_dataset.dta")
 
 # Select endorsement experiment questions and reverse code responses
 questions <- c("id", "q10a_control", "q10b_control", "q10c_control", 
@@ -72,6 +72,6 @@ data_slvk_vars <- mutate(data_slvk_vars, across(everything(), ~as.numeric(.)))
 # 4. Merge & Export Clean Data
 #-------------------------------
 final_data <- merge(data_slvk_vars, data_slvk_questions, by = "id")
-write_sav(final_data, "~/projects/AaD_Research/datasets/scrubbed_datasets/slvk_scrubbed.sav")
+write_sav(final_data, "~/projects/AaD_Research/datasets/scrubbed_datasets/slovakia_scrubbed.sav")
 
 rm(list = ls())
