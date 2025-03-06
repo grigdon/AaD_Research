@@ -6,13 +6,13 @@ library(haven)
 library(dplyr)
 
 # Read dataset from SPSS file
-data_slvk <- read_sav("~/projects/AaD_Research/datasets/scrubbed_datasets/slovakia_scrubbed.sav")
+data_cz <- read_sav("~/projects/AaD_Research/datasets/scrubbed_datasets/czechia_scrubbed.sav")
 
 # Select only the needed columns
-questions <- c("id",
-               "q10a_control", "q10b_control", "q10c_control",
-               "q10a_experiment", "q10b_experiment", "q10c_experiment")
-data_slvk_questions <- data_slvk[questions]
+questions <- c("id", "Q10AA_control_reversed", "Q10AB_control_reversed", "Q10AC_control_reversed",
+               "Q10BA_experiment_reversed", "Q10BB_experiment_reversed", "Q10BC_experiment_reversed"
+)
+data_cz_questions <- data_cz[questions]
 
 # Define a function to calculate the proportion of responses equal to y
 prop <- function(x, y) {
@@ -21,16 +21,16 @@ prop <- function(x, y) {
 
 # Calculate proportions for each response category (1 to 4) for questions 2 to 7
 h <- data.frame(
-  "Strongly Disagree" = apply(data_slvk_questions[2:7], 2, prop, y = 1),
-  "Disagree"          = apply(data_slvk_questions[2:7], 2, prop, y = 2),
-  "Agree"             = apply(data_slvk_questions[2:7], 2, prop, y = 3),
-  "Strongly Agree"    = apply(data_slvk_questions[2:7], 2, prop, y = 4)
+  "Strongly Disagree" = apply(data_cz_questions[2:7], 2, prop, y = 1),
+  "Disagree"          = apply(data_cz_questions[2:7], 2, prop, y = 2),
+  "Agree"             = apply(data_cz_questions[2:7], 2, prop, y = 3),
+  "Strongly Agree"    = apply(data_cz_questions[2:7], 2, prop, y = 4)
 )
 # Add row names manually and set a specific order
 h$rowname <- rownames(h)
-h$rowname <- factor(h$rowname, levels = c("q10a_control", "q10a_experiment",
-                                          "q10b_control", "q10b_experiment",
-                                          "q10c_control", "q10c_experiment"))
+h$rowname <- factor(h$rowname, levels = c("Q10AA_control_reversed", "Q10BA_experiment_reversed",
+                                          "Q10AB_control_reversed", "Q10BB_experiment_reversed",
+                                          "Q10AC_control_reversed", "Q10BC_experiment_reversed"))
 mh <- melt(h, id.vars = "rowname")
 
 #===============================
@@ -55,20 +55,20 @@ stacked_plot <- ggplot(mh, aes(x = rowname, y = value, fill = variable)) +
     panel.grid.minor = element_blank()
   )
 
-if(!dir.exists("~/projects/AaD_Research/output/plots/slovakia/dist"))
+if(!dir.exists("~/projects/AaD_Research/output/plots/czechia/dist"))
   stop("Directory not found!")
 
-ggsave(filename = "~/projects/AaD_Research/output/plots/slovakia/dist/stacked_bar_graph.pdf", 
+ggsave(filename = "~/projects/AaD_Research/output/plots/czechia/dist/stacked_bar_graph.pdf", 
        plot = stacked_plot,
        width = 10, height = 7, device = "pdf")
 
 #===============================
 # Calculate Means for Each Group
 #===============================
-control_means <- data_slvk_questions %>%
+control_means <- data_cz_questions %>%
   select(contains("control")) %>%
   summarise(across(everything(), ~ mean(.x, na.rm = TRUE)))
-treatment_means <- data_slvk_questions %>%
+treatment_means <- data_cz_questions %>%
   select(contains("experiment")) %>%
   summarise(across(everything(), ~ mean(.x, na.rm = TRUE)))
 
@@ -104,9 +104,9 @@ compare_bar_graph <- ggplot(mean_df, aes(x = question, y = mean_response, fill =
     panel.grid.minor = element_blank()
   )
 
-if(!dir.exists("~/projects/AaD_Research/output/plots/slovakia/dist"))
+if(!dir.exists("~/projects/AaD_Research/output/plots/czechia/dist"))
   stop("Directory not found!")
 
-ggsave(filename = "~/projects/AaD_Research/output/plots/slovakia/dist/compare_bar_graph.pdf", 
+ggsave(filename = "~/projects/AaD_Research/output/plots/czechia/dist/compare_bar_graph.pdf", 
        plot = compare_bar_graph,
        width = 10, height = 7, device = "pdf")

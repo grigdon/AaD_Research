@@ -20,10 +20,10 @@ questions <- c("Q10AA_control_reversed", "Q10AB_control_reversed", "Q10AC_contro
                "Q10BA_experiment_reversed", "Q10BB_experiment_reversed", "Q10BC_experiment_reversed"
 )
 
-# Replaced 'CD' with 'ID' and changed data type
+# Replaced 'CD' with 'id' and changed data type
 data_cz_questions <- as.data.frame(CZData[questions])
 
-data_cz_questions <- rowid_to_column(data_cz_questions, "ID")
+data_cz_questions <- rowid_to_column(data_cz_questions, "id")
 
 data_cz_questions <- mutate(data_cz_questions, across(everything(), ~as.numeric(.)))
 
@@ -46,7 +46,7 @@ vars <- c("Male", "Age", "Education", "Capital", "IdeologyLR", "Income", "FamInc
 # Subset and recode variables
 data_cz_vars <- as.data.frame(data_cz_vars[vars])
 
-data_cz_vars <- rowid_to_column(data_cz_vars, "ID")
+data_cz_vars <- rowid_to_column(data_cz_vars, "id")
 
 # Convert all variables to numeric
 data_cz_vars <- mutate(data_cz_vars, across(everything(), ~as.numeric(.)))
@@ -74,7 +74,7 @@ data_cz_vars <- mutate(data_cz_vars, across(everything(), ~as.numeric(.)))
 # 4. Merge & Export Clean Data
 #------------------------------
 
-final_data <- merge(data_cz_vars, data_cz_questions, by = "ID")
+final_data <- merge(data_cz_vars, data_cz_questions, by = "id")
 write_sav(final_data, "~/projects/AaD_Research/datasets/scrubbed_datasets/czechia_scrubbed.sav")
 
 rm(list = ls())
