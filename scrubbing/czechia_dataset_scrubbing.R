@@ -1,4 +1,3 @@
-# Load required packages
 library(haven)
 library(dplyr)
 library(missForest)
@@ -8,6 +7,7 @@ library(ggpubr)
 library(forcats)
 library(reshape2)
 library(readxl)
+library(tibble)
 
 #--------------------------------
 # 1. Data Loading & Initial Setup
@@ -16,11 +16,16 @@ library(readxl)
 CZData <- read_dta("~/projects/AaD_Research/datasets/raw_datasets/czechia_raw_dataset.dta")
 
 # Select endorsement experiment questions and reverse code responses
-questions <- c("CD","Q10AA_control_reversed", "Q10AB_control_reversed", "Q10AC_control_reversed",
+questions <- c("Q10AA_control_reversed", "Q10AB_control_reversed", "Q10AC_control_reversed",
                "Q10BA_experiment_reversed", "Q10BB_experiment_reversed", "Q10BC_experiment_reversed"
 )
 
-data_cz_questions <- CZData[questions]
+# Replaced 'CD' with 'ID' and changed data type
+data_cz_questions <- as.data.frame(CZData[questions])
+
+data_cz_questions <- rowid_to_column(data_cz_questions, "ID")
+
+data_cz_questions <- mutate(data_cz_questions, across(everything(), ~as.numeric(.)))
 
 #-----------------------------------
 # 2. Variable Preparation & Recoding
@@ -33,13 +38,15 @@ data_cz_vars <- CZData %>%
          NativeJobs, NativeRights, Religiosity, VoteFarRight
   )
 
-vars <- c("CD", "Male", "Age", "Education", "Capital", "IdeologyLR", "Income", "FamIncome", "DemPolGrievance", "PolicyPolGrievance",
+vars <- c("Male", "Age", "Education", "Capital", "IdeologyLR", "Income", "FamIncome", "DemPolGrievance", "PolicyPolGrievance",
           "EconGrievanceRetro", "EconGrievanceProspInd", "EconGrievanceProspAgg", "EconGrievanceProspMostFams",
           "GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner", "Ukraine",
           "NativeJobs", "NativeRights", "Religiosity", "VoteFarRight")
 
 # Subset and recode variables
-data_cz_vars <- data_cz_vars[vars]
+data_cz_vars <- as.data.frame(data_cz_vars[vars])
+
+data_cz_vars <- rowid_to_column(data_cz_vars, "ID")
 
 # Convert all variables to numeric
 data_cz_vars <- mutate(data_cz_vars, across(everything(), ~as.numeric(.)))
@@ -67,7 +74,7 @@ data_cz_vars <- mutate(data_cz_vars, across(everything(), ~as.numeric(.)))
 # 4. Merge & Export Clean Data
 #-------------------------------
 
-final_data <- merge(data_cz_vars, data_cz_questions, by = "CD")
+final_data <- merge(data_cz_vars, data_cz_questions, by = "ID")
 write_sav(final_data, "~/projects/AaD_Research/datasets/scrubbed_datasets/czechia_scrubbed.sav")
 
 rm(list = ls())
