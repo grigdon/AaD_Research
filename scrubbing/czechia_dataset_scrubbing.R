@@ -70,9 +70,9 @@ data_cz_vars <- mutate(data_cz_vars, across(everything(), ~as.numeric(.)))
 #                          right = TRUE))
 #   )
 
-#-------------------------------
+#------------------------------
 # 4. Merge & Export Clean Data
-#-------------------------------
+#------------------------------
 
 final_data <- merge(data_cz_vars, data_cz_questions, by = "ID")
 write_sav(final_data, "~/projects/AaD_Research/datasets/scrubbed_datasets/czechia_scrubbed.sav")
