@@ -1,0 +1,538 @@
+
+
+#################
+Poland code
+March 7, 2025
+#################
+
+
+
+#============================================
+# 1. Data Loading and Initial Processing: POLAND
+#============================================
+
+# Load the survey data
+library(haven)
+PLDataMOD1.dta <- read_dta("~/Dropbox/ArmedDangerousMPSA/Data/Poland/PLDataMOD1.dta")
+View(PLDataMOD1.dta)
+
+> library(haven)
+> PLDataMOD1 <- read_dta("Dropbox/ArmedDangerousMPSA/EstimationResults/ReplicationCodeArmedDangerous/Poland-CodeReplication/PLDataMOD1.dta")
+> View(PLDataMOD1)
+
+
+#check missing 
+colSums(is.na(PLDataMOD1))
+
+
+#########
+
+
+# Define and select relevant columns for the endorsement experiment
+
+questions <- c("id", "Q10A_control_reversed", "Q10B_control_reversed", "Q10C_control_reversed", "Q10D_experiment_reversed", "Q10E_experiment_reversed", "Q10F_experiment_reversed")
+
+########label_map <- c("Q10A" = "Spending on Roma_control",
+               "Q10D" = "Spending on Roma_experiment",
+               
+			   "Q10B" = "Euroscepticism_control",
+               "Q10E" = "Euroscepticism_experiment",
+               
+			   "Q10C" = "Laxer Gun Control_control",
+               "Q10F" = "Laxer Gun Control_experiment")
+
+
+
+data_pl_questions <- PLDataMOD1[ , questions]
+
+
+#============================================
+# 2. Variable Preparation and Recoding
+#============================================
+
+library(tidyverse)
+# Select relevant columns for analysis
+data_pl_vars <-PLDataMOD1 %>%
+  select(
+    id, Male, Age, Education, Capital, IdeologyLR, Income, DemPolGrievance, PolicyPolGrievance,
+    EconGrievanceRetro, EconGrievanceProspInd, EconGrievanceProspAgg, EconGrievanceProspMostFams,
+    GayNeighbor, GayFamily, GayLesRights, ForNeighbor, ForPartner, Ukraine,
+    NativeJobs, NativeRights, DemonstrateNational, Religiosity, VoteFarRight
+  )
+
+
+
+# Define variables to keep
+
+vars <- c("id", "Male", "Age", "Education", "Capital", "IdeologyLR", "Income",  "DemPolGrievance", "PolicyPolGrievance",
+  "EconGrievanceRetro", "EconGrievanceProspInd", "EconGrievanceProspAgg", "EconGrievanceProspMostFams",
+  "GayNeighbor", "GayFamily", "GayLesRights", "ForNeighbor", "ForPartner", "Ukraine",
+  "NativeJobs", "NativeRights", "DemonstrateNational", "Religiosity", "VoteFarRight")
+
+
+# Subset variables using dplyr's select function
+data_pl_vars <- data_pl_vars %>%
+  select(all_of(vars))
+
+
+# Convert all variables to numeric
+data_pl_vars <- mutate(data_pl_vars, across(everything(), ~as.numeric(.)))
+
+============================================
+# 3. Missing Data Imputation - Standardization
+#============================================
+
+n_cols <- ncol(data_pl_vars) - 1
+
+data_pl_vars <- mutate(data_pl_vars, across(all_of(2:n_cols), ~ as.vector(scale(.))))
+
+# Verify the standardization worked
+print("Summary of standardized variables:")
+print(summary(data_pl_vars))
+
+#VoteFarRght and religiosity didn’t seem to standardize, but everything did and has mean 0
+#May need to unstandardized for ME plots - GR
+
+
+#============================================
+# 4. Endorsement Experiment Setup
+#============================================
+
+# Merge the questions and standardized variables datasets
+data_pl <- left_join(data_pl_questions, data_pl_vars, by = "id")
+
+# Create named list for response questions
+Y <- list(Q1 = c("Q10A_control_reversed", "Q10D_experiment_reversed"), 
+          Q2 = c("Q10B_control_reversed", "Q10E_experiment_reversed"), 
+          Q3 = c("Q10C_control_reversed", "Q10F_experiment_reversed"))
+
+
+
+#============================================
+# 5. Model Fitting
+#============================================
+
+ 
+# Fit the full endorsement model (reduced w/o traditionalism variables)
+endorseFULL1b <- endorse(Y = Y, 
+                        data = PLDataMOD1, 
+                        identical.lambda = FALSE, 
+                        covariates = TRUE, 
+                        formula.indiv = formula(~ Age + Male + Education + 
+                                                  Capital + IdeologyLR + Income + 
+                                                  DemPolGrievance + PolicyPolGrievance + 
+                                                  EconGrievanceRetro + EconGrievanceProspInd + 
+                                                  EconGrievanceProspAgg + 
+                                                  NativeRights + NativeJobs + 
+                                                  DemonstrateNational + 
+                                                  GayNeighbor + 
+                                                  GayFamily + GayLesRights + ForNeighbor + 
+                                                  ForPartner + Ukraine + VoteFarRight + 	 						  Religiosity
+                        ), 
+                        hierarchical = FALSE)
+ 
+#============================================
+# 6. Post-estimation
+#============================================
+
+
+####CoefficientPlots for model1a#####
+
+df <- data.frame(as.matrix(endorseFULL1b$delta))
+
+ci <- data.frame(variables = colnames(df[2:23]), mean = apply(df[2:23], 2, mean), sd = apply(df[2:23], 2, sd))
+
+ci <- mutate(ci, max = mean + 1.96 * sd, min = mean - 1.96 * sd)
+
+
+ci$variables <- c("Age", "Male", "Education", "Capital", "Conservative ideology", "Income", 
+                  "Political grievance (democracy)", "Political grievance (policy)", 
+                  "Economic grievance (retrospective-ind)", "Economic grievance (prospective-ind)", 
+                  "Economic grievance (prospective-agg)", "Native rights", "Native jobs", 
+                  "Demonstrated for National values", "Anti-Gay neighbor", "Anti-Gay family member", "Anti-Gay rights",
+                  "Anti-Foreigner neighbor", "Anti-Foreigner partner", "Anti-Ukrainian refugee", 
+                  "Far Right Voter",  "Religiosity")
+
+
+
+ci <- mutate(ci, variables= fct_reorder(variables, mean))
+
+ggplot(ci, aes(x = variables, y = mean)) + 
+    geom_point() + 
+    geom_errorbar(aes(ymin = min, ymax = max)) + 
+    coord_flip() + 
+    geom_abline(slope = 0, intercept = 0, color = "red") + 
+    ggtitle("All Polish Youth") + 
+    theme(
+        plot.title = element_text(hjust = 0),
+        plot.margin = margin(l = 5, r = 5, t = 10, b = 10)  # Moved inside theme()
+    ) + 
+    labs(x = NULL)
+
+
+
+###alternative coefplot approach 
+
+library(ggplot2)
+
+# Create the dataframe
+
+# Create ci with lower and upper bounds first
+ci <- data.frame(
+    mean = apply(endorseFULL1a$delta, 2, mean),
+    lower = apply(endorseFULL1a$delta, 2, quantile, 0.025),
+    upper = apply(endorseFULL1a$delta, 2, quantile, 0.975)
+)
+
+# Add variable names to ci
+ci$variable <- rownames(ci)
+
+# Remove Intercept row if it exists
+ci <- ci[!grepl("Intercept", ci$variable), ]
+
+# Ensure lower and upper exist before creating min and max
+if ("lower" %in% names(ci) && "upper" %in% names(ci)) {
+    ci <- ci %>%
+        mutate(min = lower,  # Create min column from lower
+               max = upper)  # Create max column from upper
+} else {
+    stop("Columns 'lower' and 'upper' are missing in 'ci'.")
+}
+
+# Print a summary to check if it worked
+print(head(ci))
+
+ci <- data.frame(variables = colnames(df[2:23]), mean = apply(df[2:23], 2, mean), sd = apply(df[2:23], 2, sd))
+
+
+
+ci$variables <- c("Age", "Male", "Education", "Capital", "Conservative ideology", "Income", 
+                  "Political grievance (democracy)", "Political grievance (policy)", 
+                  "Economic grievance (retrospective-ind)", "Economic grievance (prospective-ind)", 
+                  "Economic grievance (prospective-agg)", "Native rights", "Native jobs", 
+                  "Demonstrated for national values", "Anti-Gay neighbor", "Anti-Gay family member", "Anti-Gay Rights",
+                  "Anti-Foreigner neighbor", "Anti-Foreigner partner", "Anti-Ukrainian refugee", 
+                  "Far Right Voter", "Religiosity")
+
+ci <- mutate(ci, variables= fct_reorder(variables, mean))
+
+# Create min and max columns if they do not exist
+if (!("min" %in% names(ci) && "max" %in% names(ci))) {
+    ci <- ci %>%
+        mutate(min = mean - 1.96 * sd,  # Assuming 95% CI using sd
+               max = mean + 1.96 * sd)
+}
+
+# Create the plot
+library(ggplot2)
+
+ggplot(ci, aes(x = variables, y = mean)) + 
+    geom_point() + 
+    geom_errorbar(aes(ymin = min, ymax = max)) +  # Uses the new min and max columns
+    geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
+    theme_minimal() + 
+    geom_abline(slope = 0, intercept = 0, color = "red") +
+    coord_flip() +  
+    ggtitle("Support for the Outlaws Army (Betyársereg)") +  
+    theme(plot.title = element_text(hjust = 0.5)) + 
+    labs(x = NULL)
+
+
+
+
+
+
+####################
+OLD CODE below
+###################
+
+
+---
+title: "Poland-test"
+output: html_document
+date: "2024-05-09"
+---
+
+
+---
+---
+
+library(endorse)
+library(tidyverse)
+library(haven)
+library(ggpubr)
+library(missForest)
+library(forcats)
+library(reshape2)
+library(haven)
+
+Base_final_CJ_client <- read_sav("Dropbox/ArmedDangerousMPSA/Data/Poland2/data-poland/Base_final_+CJ_client.sav")
+
+data_pl <- Base_final_CJ_client
+
+####QUESTION QINGYU?
+#there is another id variable called SYS_index that says unique record identifier - should we #use that instead?
+
+questions <- c("id","Q10A", "Q10B", "Q10C", "Q10D", "Q10E", "Q10F")
+
+data_pl_questions <- data_pl[questions]
+
+###PLS CHECK - IS 2:4 CORRECT BELOW? SHOULD IT BE 2:6?
+
+data_pl_questions <- mutate(data_pl_questions, across(2:4, ~ recode(as.numeric(.),
+                                          `1` = 4L,
+                                          `2` = 3L,
+                                          `3` = 2L,
+                                          `4` = 1L,
+                                          `9` = 99L)
+                                   )
+                            )
+
+data_pl_vars <- mutate(data_pl,
+                  id = id,       
+                  gender = recode(as.integer(SEX),
+                                   `1` = 1L,
+                                   `2` = 0L),
+                  age = AGE,
+                  education = recode(as.integer(EDU),
+                                   `1` = 1L,
+                                   `2` = 1L,
+                                   `3` = 1L,
+                                   `4` = 1L,
+                                   `5` = 1L,
+                                   `7` = 1L,
+                                   `6` = 2L,
+                                   `8` = 2L,
+                                   `9` = 3L,
+                                   `10` = 3L,
+                                   `11` = 3L,
+                                   `12` = 3L),                                 
+                  is_capital = recode(as.integer(REG),
+                                   `7` = 1L,
+                                   .default = 0L),
+                  ideology = recode(as.integer(Q03),
+                                  `1` = 1L,
+                                  `2` = 2L,
+                                  `3` = 3L,
+                                  `4` = 4L,
+                                  `5` = 5L,
+                                  `9` = 99L),
+                  income = recode(as.integer(PINC),
+                                  `1` = 1L,
+                                  `2` = 2L,
+                                  `3` = 3L,
+                                  `4` = 4L,
+                                  `5` = 5L,
+                                  `7` = 7L,
+                                  `8` = 8L,
+                                  `9` = 9L,
+                                  `10` = 10L,
+                                  `11` = 11L,
+                                  `12` = 12L,
+                                  `13` = 13L,
+                                  `14` = 14L,
+                                  `15` = 99L,
+                                  `16` = 99L),
+                  DemPolGrievence = recode(as.integer(Q04_01),
+                                          `1` = 1L,
+                                          `2` = 2L,
+                                          `3` = 3L,
+                                          `4` = 4L,
+                                          `9` = 99L),
+                  PolicyPolGrievence = recode(as.integer(Q04_02),
+                                          `1` = 1L,
+                                          `2` = 2L,
+                                          `3` = 3L,
+                                          `4` = 4L,
+                                          `9` = 99L),
+                  EUPolGrievence = recode(as.integer(Q04_03),
+                                          `1` = 1L,
+                                          `2` = 2L,
+                                          `3` = 3L,
+                                          `4` = 4L,
+                                          `9` = 99L),
+                  EconGrievenceRetro = recode(as.integer(Q05A),
+                                          `1` = 1L,
+                                          `2` = 2L,
+                                          `3` = 3L,
+                                          `4` = 4L,
+                                          `9` = 99L),
+                  EconGrievenceProspInd = recode(as.integer(Q05B),
+                                          `1` = 1L,
+                                          `2` = 2L,
+                                          `3` = 3L,
+                                          `4` = 4L,
+                                          `9` = 99L),
+                  EconGrievenceProspAgg = recode(as.integer(Q05C),
+                                          `1` = 1L,
+                                          `2` = 2L,
+                                          `3` = 3L,
+                                          `4` = 4L,
+                                          `9` = 99L),
+                  NatPride = recode(as.integer(Q07),
+                                          `1` = 4L,
+                                          `2` = 3L,
+                                          `3` = 2L,
+                                          `4` = 1L,
+                                          `9` = 99L),
+                  NativeRights = recode(as.integer(Q09A_01),
+                                          `1` = 4L,
+                                          `2` = 3L,
+                                          `3` = 2L,
+                                          `4` = 1L,
+                                          `9` = 99L),
+                  NativeJobs = recode(as.integer(Q09A_13),
+                                          `1` = 4L,
+                                          `2` = 3L,
+                                          `3` = 2L,
+                                          `4` = 1L,
+                                          `9` = 99L),
+                  DemonstrateNational = recode(as.integer(Q04_03),
+                                          `1` = 1L,
+                                          `2` = 2L,
+                                          `3` = 3L,
+                                          `4` = 4L,
+                                          `9` = 99L),
+                  LawOrder = recode(as.integer(Q09A_05),
+                                          `1` = 4L,
+                                          `2` = 3L,
+                                          `3` = 2L,
+                                          `4` = 1L,
+                                          `9` = 99L),
+                  Chauvinism = recode(as.integer(Q09A_04),
+                                          `1` = 4L,
+                                          `2` = 3L,
+                                          `3` = 2L,
+                                          `4` = 1L,
+                                          `9` = 99L),
+                  ChristianSchool = recode(as.integer(Q09A_03),
+                                          `1` = 4L,
+                                          `2` = 3L,
+                                          `3` = 2L,
+                                          `4` = 1L,
+                                          `9` = 99L),
+                  DemonstrateTrad = recode(as.integer(Q12A),
+                                          `1` = 1L,
+                                          `2` = 2L,
+                                          `3` = 3L,
+                                          `4` = 4L,
+                                          `9` = 99L),
+                  GayNeighbor = recode(as.integer(Q08_03),
+                                          `1` = 4L,
+                                          `2` = 3L,
+                                          `3` = 2L,
+                                          `4` = 1L,
+                                          `9` = 99L),
+                  GayPartner =  recode(as.integer(Q08_04),
+                                          `1` = 4L,
+                                          `2` = 3L,
+                                          `3` = 2L,
+                                          `4` = 1L,
+                                          `9` = 99L),
+                  ForNeighbor = recode(as.integer(Q08_05),
+                                          `1` = 4L,
+                                          `2` = 3L,
+                                          `3` = 2L,
+                                          `4` = 1L,
+                                          `9` = 99L),
+                  ForPartner = recode(as.integer(Q08_06),
+                                          `1` = 4L,
+                                          `2` = 3L,
+                                          `3` = 2L,
+                                          `4` = 1L,
+                                          `9` = 99L),
+                  Ukraine = recode(as.integer(Q08_07),
+                                          `1` = 4L,
+                                          `2` = 3L,
+                                          `3` = 2L,
+                                          `4` = 1L,
+                                          `9` = 99L),
+                  )
+
+                                 
+                                   
+vars <- c("id", "gender", "age", "education", "is_capital", "income", "ideology", "DemPolGrievence","PolicyPolGrievence","EUPolGrievence","EconGrievenceRetro","EconGrievenceProspInd","EconGrievenceProspAgg","NatPride","NativeRights", 
+"NativeJobs","DemonstrateNational","LawOrder","Chauvinism","ChristianSchool","DemonstrateTrad","GayNeighbor","GayPartner","ForNeighbor","ForPartner","Ukraine")
+
+data_pl_vars <- data_pl_vars[vars]
+
+##NOT RUN
+#data_pl_vars <- mutate(data_pl_vars, across(7:27, ~ recode(as.numeric(.),
+#                                          `1` = 4L,
+#                                          `2` = 3L,
+#                                          `3` = 2L,
+#                                          `4` = 1L)
+#                              )
+#)
+#data_cz_vars <- mutate(data_cz_vars, across(everything(), ~as.numeric(.)))
+#data_cz_vars <- mutate(data_cz_vars, across(4:27, ~ifelse(. %in% c(99, 9), NA, .)))
+##END
+
+
+data_pl_imp <- missForest(as.data.frame(data_pl_vars))
+View(data_pl_imp)
+
+###VIEW THE IMPUTED DATA TO MAKE SURE THERE ARE NO 99 IN IT -= THAT THE REAL MISSING DATA for ###Q10 are still NA for half the dsample. 
+#####IMPUTED AND 99 IS NOT THERE ANYMORE
+
+data_pl_vars <- as_tibble(data_pl_imp$ximp)
+
+data_pl_vars <- mutate(data_pl_vars, across(2:26, ~ as.vector(scale(.))))
+
+data_pl <- as_tibble(merge(data_pl_vars, data_pl_questions, by = "id"))
+
+Y <- list(Q1 = c("Q10A", "Q10D"), Q2 = c("Q10B", "Q10E"), Q3 = c("Q10C", "Q10F"))
+
+
+##estimate the base model
+
+endorse <- endorse(Y = Y, data = data_pl, identical.lambda = FALSE, covariates = TRUE, formula.indiv = formula( ~ age + gender + education + is_capital + ideology + income), hierarchical = FALSE)
+
+###didn't work...
+###NOT RUN BUT WOULD LIKE TO....
+####endorse.plot(Y, data_pl, 4)
+
+##ARE THESE COLUMN NUMBERS 2:27 AND 2:7 ETC CORRECT - 
+####THEY ARE IMPORTED FROM A SCRIPT FOR ANOPTHER COUNTRY, SO...PLS CHECK
+###...
+
+df <- data.frame(as.matrix(endorse$delta))
+ci <- data.frame(variables = colnames(df[2:7]), mean = apply(df[2:7], 2, mean), sd = apply(df[2:7], 2, sd))
+ci <- mutate(ci, max = mean + 1.96 * sd, min = mean - 1.96 * sd)
+ci$variables <- c("Age", "Gender", "Education", "Capital", "Ideology", "Income")
+ci <- mutate(ci, variables= fct_reorder(variables, mean))
+ggplot(ci, aes(x = variables, y = mean)) + geom_point() + geom_errorbar(aes(ymin = min, ymax = max)) + coord_flip() + geom_abline(slope = 0, intercept = 0, color = "red") + ggtitle("M1: Baseline Model") + theme(plot.title = element_text(hjust = 0.5)) + ylim(-0.8, 0.5)
+
+##estimate full model
+
+endorseFULL <- endorse(Y = Y, data = data_pl, identical.lambda = FALSE, covariates = TRUE, formula.indiv = formula( ~ age + gender + education + is_capital + ideology + income + DemPolGrievence + PolicyPolGrievence + EUPolGrievence + EconGrievenceRetro + EconGrievenceProspInd + EconGrievenceProspAgg + NatPride + NativeRights + NativeJobs + DemonstrateNational + LawOrder + Chauvinism + ChristianSchool + DemonstrateTrad + GayNeighbor+ GayPartner+ ForNeighbor + ForPartner + Ukraine), hierarchical = FALSE)
+
+###CHECK COLUMN NUMBERS BELOW PLEASE######
+
+df <- data.frame(as.matrix(endorseFULL$delta))
+
+####NOT RUN####
+#df <- data.frame(as.matrix(endorse$delta))
+#ci <- data.frame(variables = colnames(df[2:28]), mean = apply(df[2:28], 2, mean), sd = apply(df[2:28], 2, sd))
+#ci <- mutate(ci, max = mean + 1.96 * sd, min = mean - 1.96 * sd)
+###END
+
+###prepare coefplot
+
+ci <- data.frame(variables = colnames(df[2:25]), mean = apply(df[2:25], 2, mean), sd = apply(df[2:25], 2, sd))
+
+ci <- mutate(ci, max = mean + 1.96 * sd, min = mean - 1.96 * sd)
+
+##ci$variables <- c("Age", "Gender", "Education", "Capital", "Ideology", "Income", ##"DemPolGrievence", "PolicyPolGrievence", "EUPolGrievence", "EconGrievenceRetro", ##"EconGrievenceProspInd", "EconGrievenceProspAgg", "NatPride", "NativeRights", "NativeJobs", ##"DemonstrateNational", "LawOrder", "Chauvinism", "ChristianSchool", "DemonstrateTrad", ##"GayNeighbor", "GayPartner", "ForNeighbor", "ForPartner", "Ukraine”)
+
+#####THIS LINE BELOW DIDN'T WORK....IT HANGS ON AT THE END WITH A +...AND THEN I BREAK IT WITH ####ESC BUT I THINK SOMETHING IS OFF...ANY IDEAS? THE TWO VARIABLES EUPOLGRIEVANCE AND DEMONAT ####ARE BOTH VERY UNUSUAL AND THE INTERVALS FOR THE OTHERS ARE SUSPICIOUSLY NARROW....
+
+ci$variables <- c("Age", "Gender", "Education", "Capital", "Ideology", "Income", "DemPolGrievence", "PolicyPolGrievence", "EUPolGrievence", "EconGrievenceRetro", "EconGrievenceProspInd", "EconGrievenceProspAgg", "NatPride", "NativeRights", "NativeJobs", "DemonstrateNational", "LawOrder", "Chauvinism", "ChristianSchool", "DemonstrateTrad", "GayNeighbor", "GayPartner", "ForNeighbor", "ForPartner", "Ukraine”)
+
+ci <- mutate(ci, variables= fct_reorder(variables, mean))
+
+ggplot(ci, aes(x = variables, y = mean)) + geom_point() + geom_errorbar(aes(ymin = min, ymax = max)) + coord_flip() + geom_abline(slope = 0, intercept = 0, color = "red") + ggtitle("M2: Full Model") + theme(plot.title = element_text(hjust = 0.5)) 
+
+####didn't work...endorse.plot()
+endorse.plot(Y = Y, data = data_pl, scale = 4)
+
