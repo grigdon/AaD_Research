@@ -16,7 +16,7 @@ library(tidyr)
 library(Cairo)
 
 #====================================================
-# 1. Data Loading and Initial Processing for Slovakia
+# 1. Data Loading and Initial Processing for Czechia
 #====================================================
 
 CZData <- read_sav("~/projects/AaD_Research/datasets/scrubbed_datasets/czechia_scrubbed.sav")
@@ -58,11 +58,11 @@ endorse_object <- endorse(Y = Y,
                           data = data_cz,
                           identical.lambda = FALSE,
                           covariates = TRUE,
-                          formula.indiv = formula( ~ Male, Age, Education, Capital, IdeologyLR, Income, FamIncome, DemPolGrievance,
-                                                   PolicyPolGrievance, EconGrievanceRetro, EconGrievanceProspInd, EconGrievanceProspAgg,
-                                                   EconGrievanceProspMostFams, GayNeighbor, GayFamily, ForNeighbor, ForPartner, Ukraine,
-                                                   NativeJobs, NativeRights, Religiosity, VoteFarRight
-                          ),
+                          formula.indiv = formula( ~ Male + Age + Education + Capital + IdeologyLR + Income + FamIncome + DemPolGrievance +
+                                                   PolicyPolGrievance + EconGrievanceRetro + EconGrievanceProspInd + EconGrievanceProspAgg +
+                                                   EconGrievanceProspMostFams + GayNeighbor + GayFamily + ForNeighbor + ForPartner + Ukraine +
+                                                   NativeJobs + NativeRights + Religiosity + VoteFarRight
+                                                  ),
                           hierarchical = FALSE
 )
 
@@ -72,22 +72,21 @@ endorse_object <- endorse(Y = Y,
 
 # Create the dataframe using posterior samples
 delta_matrix_values <- data.frame(
-  mean = apply(endorse_object$delta[, 2:30], 2, mean),
-  lower = apply(endorse_object$delta[, 2:30], 2, quantile, 0.025),
-  upper = apply(endorse_object$delta[, 2:30], 2, quantile, 0.975)
+  mean = apply(endorse_object$delta[, 2:23], 2, mean),
+  lower = apply(endorse_object$delta[, 2:23], 2, quantile, 0.025),
+  upper = apply(endorse_object$delta[, 2:23], 2, quantile, 0.975)
 )
 
 # Add variable names and categories
-delta_matrix_values$variables <- colnames(endorse_object$delta)[2:30]
+delta_matrix_values$variables <- colnames(endorse_object$delta)[2:23]
 delta_matrix_values$category <- NA
 
+
 # Define categories
-ses_demographics <- c("age", "male", "educ", "capital", "ideology", "income", "FAMincome")
-political_economic_grievances <- c("DemPolGrievance", "PolicyPolGrievance", 
-                                   "EconGrievenceRetro", "EconGrievenceProspInd", "EconGrievenceProspAgg")
-nationalism <- c("NatPride", "NativeRights", "NativeJobs", "DemonstrateNational", 
-                 "SlovakNationality", "Nationalist", "VoteFarRight")
-traditionalism <- c("LawOrder", "MaleChauvinism", "ChristianSchool", "DemonstrateTrad", "Religiosity")
+ses_demographics <- c("Age", "Male", "Education", "Capital", "IdeologyLR", "Income", "FamIncome", "Religiosity")
+political_economic_grievances <- c("DemPolGrievance", "PolicyPolGrievance", "EconGrievanceRetro", "EconGrievanceProspInd",
+                                   "EconGrievanceProspAgg", "EconGrievanceProspMostFams")
+nationalism <- c( "NativeRights", "NativeJobs", "VoteFarRight")
 boundary_maintenance <- c("GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner", "Ukraine")
 
 # Assign categories
@@ -97,7 +96,6 @@ delta_matrix_values <- delta_matrix_values %>%
       variables %in% ses_demographics ~ "SES Demographics",
       variables %in% political_economic_grievances ~ "Political & Economic Grievances",
       variables %in% nationalism ~ "Nationalism",
-      variables %in% traditionalism ~ "Traditionalism",
       variables %in% boundary_maintenance ~ "Boundary Maintenance & Prejudice"
     )
   )
@@ -113,36 +111,28 @@ category_order <- c(
   "SES Demographics", 
   "Political & Economic Grievances", 
   "Nationalism", 
-  "Traditionalism", 
   "Boundary Maintenance & Prejudice"
 )
 delta_matrix_values$category <- factor(delta_matrix_values$category, levels = category_order)
 
 # Define custom labels for variables
 custom_labels <- c(
-  "age" = "Age",
-  "male" = "Male",
-  "educ" = "Education",
-  "capital" = "Capital",
-  "ideology" = "Political Ideology",
-  "income" = "Personal Income",
-  "FAMincome" = "Family Income",
+  "Age" = "Age",
+  "Male" = "Male",
+  "Education" = "Education",
+  "Capital" = "Capital",
+  "IdeologyLR" = "Political Ideology",
+  "Income" = "Personal Income",
+  "FamIncome" = "Family Income",
   "DemPolGrievance" = "Political Grievance (Democracy)",
   "PolicyPolGrievance" = "Policy Grievance",
-  "EconGrievenceRetro" = "Economic Grievance (Retro)",
-  "EconGrievenceProspInd" = "Economic Grievance (Prospective-Ind)",
-  "EconGrievenceProspAgg" = "Economic Grievance (Prospective-Agg)",
-  "NatPride" = "National Pride",
+  "EconGrievanceRetro" = "Economic Grievance (Retro)",
+  "EconGrievanceProspInd" = "Economic Grievance (Prospective-Ind)",
+  "EconGrievanceProspAgg" = "Economic Grievance (Prospective-Agg)",
+  "EconGrievanceProspMostFams" = "Economic Grievance (ProspMostFams)",
   "NativeRights" = "Native Rights",
   "NativeJobs" = "Native Jobs",
-  "DemonstrateNational" = "Demonstrated for National Values",
-  "SlovakNationality" = "Slovak Nationality",
-  "Nationalist" = "Prefers Nationalist Politics",
   "VoteFarRight" = "Far Right Voter",
-  "LawOrder" = "Law & Order Support",
-  "MaleChauvinism" = "Male Chauvinism Support",
-  "ChristianSchool" = "Christian Schools Support",
-  "DemonstrateTrad" = "Demonstrate Traditionalism",
   "Religiosity" = "Religiosity",
   "GayNeighbor" = "Anti-Gay Neighbor",
   "GayFamily" = "Anti-Gay Family",
@@ -174,88 +164,71 @@ plot <- ggplot(delta_matrix_values, aes(x = variables, y = mean)) +
   labs(x = NULL, y = "Coefficient Estimate")
 
 # Save to PDF
-ggsave("~/projects/AaD_Research/output/plots/slovakia/coef/slovakia_coef_plot.pdf", plot, width = 12, height = 10)
+ggsave("~/projects/AaD_Research/output/plots/czechia/coef/czechia_coef_plot.pdf", plot, width = 12, height = 10)
 
 #============================================
 # 4. Marginal Effects Function
 #============================================
 
 # Define the covariates of interest
-covariates_of_interest <- c("age", "male", "educ", "capital", "ideology", "income", "FAMincome", 
-                            "DemPolGrievance", "PolicyPolGrievance", "EconGrievenceRetro", 
-                            "EconGrievenceProspInd", "EconGrievenceProspAgg", "NatPride", "NativeRights",
-                            "NativeJobs", "DemonstrateNational", "SlovakNationality", "Nationalist", 
-                            "VoteFarRight", "LawOrder", "MaleChauvinism", "ChristianSchool", "DemonstrateTrad",
-                            "Religiosity", "GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner", "Ukraine"
-)
+covariates_of_interest <- c("Male", "Age", "Education", "Capital", "IdeologyLR", "Income", "FamIncome", "DemPolGrievance", "PolicyPolGrievance",
+                            "EconGrievanceRetro", "EconGrievanceProspInd", "EconGrievanceProspAgg", "EconGrievanceProspMostFams",
+                            "GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner", "Ukraine",
+                            "NativeJobs", "NativeRights", "Religiosity", "VoteFarRight"
+                            )
 
 # Variable labels for publication
 variable_labels <- c(
-  "age" = "Age", 
-  "male" = "Gender",
-  "educ" = "Education Level",
-  "capital" = "Capital Resident",
-  "ideology" = "Political Ideology",
-  "income" = "Personal Income",
-  "FAMincome" = "Family Income",
-  "DemPolGrievance" = "Democratic Political Grievance",
-  "PolicyPolGrievance" = "Policy Political Grievance",
-  "EconGrievenceRetro" = "Economic Grievance (Retrospective)",
-  "EconGrievenceProspInd" = "Economic Grievance (Prospective Individual)",
-  "EconGrievenceProspAgg" = "Economic Grievance (Prospective Aggregate)",
-  "NatPride" = "National Pride",
-  "NativeRights" = "Native Rights Support",
-  "NativeJobs" = "Native Jobs Priority",
-  "DemonstrateNational" = "National Demonstration Support",
-  "SlovakNationality" = "Slovak Nationality",
-  "Nationalist" = "Nationalist Identity",
-  "VoteFarRight" = "Far-Right Voting",
-  "LawOrder" = "Law and Order Support",
-  "MaleChauvinism" = "Male Chauvinism",
-  "ChristianSchool" = "Christian School Support",
-  "DemonstrateTrad" = "Traditional Values Demonstration",
-  "Religiosity" = "Religious Devotion",
-  "GayNeighbor" = "Acceptance of Gay Neighbors",
-  "GayFamily" = "Acceptance of Gay Family Members",
-  "ForNeighbor" = "Acceptance of Foreign Neighbors",
-  "ForPartner" = "Acceptance of Foreign Partners",
-  "Ukraine" = "Ukraine Support"
+  "Age" = "Age",
+  "Male" = "Male",
+  "Education" = "Education",
+  "Capital" = "Capital",
+  "IdeologyLR" = "Political Ideology",
+  "Income" = "Personal Income",
+  "FamIncome" = "Family Income",
+  "DemPolGrievance" = "Political Grievance (Democracy)",
+  "PolicyPolGrievance" = "Policy Grievance",
+  "EconGrievanceRetro" = "Economic Grievance (Retro)",
+  "EconGrievanceProspInd" = "Economic Grievance (Prospective-Ind)",
+  "EconGrievanceProspAgg" = "Economic Grievance (Prospective-Agg)",
+  "EconGrievanceProspMostFams" = "Economic Grievance (ProspMostFams)",
+  "NativeRights" = "Native Rights",
+  "NativeJobs" = "Native Jobs",
+  "VoteFarRight" = "Far Right Voter",
+  "Religiosity" = "Religiosity",
+  "GayNeighbor" = "Anti-Gay Neighbor",
+  "GayFamily" = "Anti-Gay Family",
+  "ForNeighbor" = "Anti-Foreigner Neighbor",
+  "ForPartner" = "Anti-Foreigner Neighbor",
+  "Ukraine" = "Anti-Ukrainian Refugee"
 )
 
 # Expanded covariates categorization
 binary_covariates <- list(
-  male = list(
+  Male = list(
     values = c(1, 2),
     labels = c("Male", "Female")
   ),
-  capital = list(
+  Capital = list(
     values = c(1, 2),
     labels = c("Not Capital", "Capital")
   ),
   VoteFarRight = list(
     values = c(0, 1),
     labels = c("No", "Yes")
-  ),
-  Nationalist = list(
-    values = c(0, 1),
-    labels = c("No", "Yes")
-  ),
-  DemonstrateNational = list(
-    values = c(0, 1),
-    labels = c("No", "Yes")
   )
 )
 
 special_covariates <- list(
-  age = list(
+  Age = list(
     values = c(1, 2, 3, 4, 5),
     labels = c("Very Young", "Young", "Middle-Aged", "Older", "Elderly")
   ),
-  educ = list(
+  Education = list(
     values = c(1, 2, 3),
     labels = c("Low", "Medium", "High")
   ),
-  income = list(
+  Income = list(
     values = c(1, 2, 3, 4),
     labels = c("Low", "Lower-Middle", "Upper-Middle", "High")
   )
@@ -344,16 +317,18 @@ calculate_marginal_effects <- function(
   return(result)
 }
 
+#============================================
+# 5. Categorize Plots Function
+#============================================
+
 # Create categorized plots function for academic publication
-create_categorized_plots <- function(plots_list, output_dir = "~/projects/AaD_Research/output/plots/slovakia/endorse") {
+create_categorized_plots <- function(plots_list, output_dir = "~/projects/AaD_Research/output/plots/czechia/marginal") {
   # Define categories
   categories <- list(
-    "SES_Demographics" = c("age", "male", "educ", "capital", "ideology", "income", "FAMincome"),
-    "Political_Economic_Grievances" = c("DemPolGrievance", "PolicyPolGrievance", 
-                                        "EconGrievenceRetro", "EconGrievenceProspInd", "EconGrievenceProspAgg"),
-    "Nationalism" = c("NatPride", "NativeRights", "NativeJobs", "DemonstrateNational", 
-                      "SlovakNationality", "Nationalist", "VoteFarRight"),
-    "Traditionalism" = c("LawOrder", "MaleChauvinism", "ChristianSchool", "DemonstrateTrad", "Religiosity"),
+    "SES_Demographics" = c("Age", "Male", "Education", "Capital", "IdeologyLR", "Income", "FamIncome", "Religiosity"),
+    "Political_Economic_Grievances" = c("DemPolGrievance", "PolicyPolGrievance", "EconGrievanceRetro", "EconGrievanceProspInd",
+                                        "EconGrievanceProspAgg", "EconGrievanceProspMostFams"),
+    "Nationalism" = c("NativeRights", "NativeJobs", "VoteFarRight"),
     "Boundary_Maintenance" = c("GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner", "Ukraine")
   )
   
@@ -362,7 +337,6 @@ create_categorized_plots <- function(plots_list, output_dir = "~/projects/AaD_Re
     "SES_Demographics" = "Socioeconomic and Demographic Factors",
     "Political_Economic_Grievances" = "Political and Economic Grievances",
     "Nationalism" = "Nationalism and National Identity",
-    "Traditionalism" = "Traditionalism and Social Conservatism",
     "Boundary_Maintenance" = "Group Boundary Maintenance"
   )
   
@@ -446,6 +420,10 @@ create_categorized_plots <- function(plots_list, output_dir = "~/projects/AaD_Re
   }
 }
 
+#============================================
+# 5. Plot Function
+#============================================
+
 # Improve the individual plot function for academic publication
 plot_marginal_effects <- function(effects_data, covariate_name) {
   # Prepare plot data
@@ -503,6 +481,25 @@ plot_marginal_effects <- function(effects_data, covariate_name) {
   
   return(p)
 }
+
+################################
+# End of Functions
+################################
+
+############## Run the functions
+
+successful_plots <- list()
+
+for(cov in covariates_of_interest) {
+  print(paste("processing covariate:", cov))
+  effect_data <- calculate_marginal_effects(endorse_object, cov)
+  print(paste("successfully provessed covariate:", cov))
+  successful_plots[[cov]] <- plot_marginal_effects(effect_data, cov)
+}
+
+############## End run functions
+
+output_dir <- "~/projects/AaD_Research/output/plots/czechia/marginal"
 
 # To use this updated plotting approach, add this after your existing code:
 if(length(successful_plots) > 0) {

@@ -354,8 +354,12 @@ calculate_marginal_effects <- function(
   return(result)
 }
 
+#============================================
+# 4. Create Categorized Plots Function
+#============================================
+
 # Create categorized plots function for academic publication
-create_categorized_plots <- function(plots_list, output_dir = "~/projects/AaD_Research/output/plots/slovakia/endorse") {
+create_categorized_plots <- function(plots_list, output_dir = "~/projects/AaD_Research/output/plots/slovakia/marginal") {
   # Define categories
   categories <- list(
     "SES_Demographics" = c("age", "male", "educ", "capital", "ideology", "income", "FAMincome"),
@@ -456,6 +460,10 @@ create_categorized_plots <- function(plots_list, output_dir = "~/projects/AaD_Re
   }
 }
 
+#============================================
+# 4. Create Individual Plot
+#============================================
+
 # Improve the individual plot function for academic publication
 plot_marginal_effects <- function(effects_data, covariate_name) {
   # Prepare plot data
@@ -513,6 +521,21 @@ plot_marginal_effects <- function(effects_data, covariate_name) {
   
   return(p)
 }
+
+############## Run the functions
+
+successful_plots <- list()
+
+for(cov in covariates_of_interest) {
+  print(paste("processing covariate:", cov))
+  effect_data <- calculate_marginal_effects(endorse_object, cov)
+  print(paste("successfully provessed covariate:", cov))
+  successful_plots[[cov]] <- plot_marginal_effects(effect_data, cov)
+}
+
+############## End run functions
+
+output_dir <- "~/projects/AaD_Research/output/plots/slovakia/marginal"
 
 # To use this updated plotting approach, add this after your existing code:
 if(length(successful_plots) > 0) {
