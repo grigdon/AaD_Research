@@ -63,6 +63,7 @@ endorse_object <- endorse(Y = Y,
                                                    EconGrievanceProspMostFams + GayNeighbor + GayFamily + ForNeighbor + ForPartner + Ukraine +
                                                    NativeJobs + NativeRights + Religiosity + VoteFarRight
                                                   ),
+                          omega2.out = TRUE,
                           hierarchical = FALSE
 )
 
@@ -166,281 +167,228 @@ plot <- ggplot(delta_matrix_values, aes(x = variables, y = mean)) +
 # Save to PDF
 ggsave("~/projects/AaD_Research/output/plots/czechia/coef/czechia_coef_plot.pdf", plot, width = 12, height = 10)
 
-#============================================
-# 4. Marginal Effects Function
-#============================================
+#===================================================
+# Bayesian Covariate Analysis: Boxplot Visualization
+#===================================================
 
-# Define the covariates of interest
-covariates_of_interest <- c("Male", "Age", "Education", "Capital", "IdeologyLR", "Income", "FamIncome", "DemPolGrievance", "PolicyPolGrievance",
-                            "EconGrievanceRetro", "EconGrievanceProspInd", "EconGrievanceProspAgg", "EconGrievanceProspMostFams",
-                            "GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner", "Ukraine",
-                            "NativeJobs", "NativeRights", "Religiosity", "VoteFarRight"
-                            )
+#===================
+# 1. Data Assignment
+#===================
 
-# Variable labels for publication
+# The covariates you wish to analyze.
+# Note: Must be identical to column titles.
+
+covariates_of_interest <- c(
+  "Male", "Age", "Education", "Capital", "IdeologyLR", "Income", "FamIncome", "DemPolGrievance", "PolicyPolGrievance",
+  "EconGrievanceRetro", "EconGrievanceProspInd", "EconGrievanceProspAgg", "EconGrievanceProspMostFams",
+  "GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner", "Ukraine",
+  "NativeJobs", "NativeRights", "Religiosity", "VoteFarRight"
+)
+
+# Variable labels for plotting, i.e., the covariate "Age" would be displayed as "Age Group"
+
 variable_labels <- c(
-  "Age" = "Age",
-  "Male" = "Male",
-  "Education" = "Education",
-  "Capital" = "Capital",
+  "Age" = "Age Group",
+  "Male" = "Gender",
+  "Education" = "Education Level",
+  "Capital" = "Capital Resident",
   "IdeologyLR" = "Political Ideology",
-  "Income" = "Personal Income",
+  "Income" = "Household Income",
   "FamIncome" = "Family Income",
-  "DemPolGrievance" = "Political Grievance (Democracy)",
+  "DemPolGrievance" = "Democratic Grievance",
   "PolicyPolGrievance" = "Policy Grievance",
-  "EconGrievanceRetro" = "Economic Grievance (Retro)",
-  "EconGrievanceProspInd" = "Economic Grievance (Prospective-Ind)",
-  "EconGrievanceProspAgg" = "Economic Grievance (Prospective-Agg)",
-  "EconGrievanceProspMostFams" = "Economic Grievance (ProspMostFams)",
-  "NativeRights" = "Native Rights",
-  "NativeJobs" = "Native Jobs",
-  "VoteFarRight" = "Far Right Voter",
+  "EconGrievanceRetro" = "Economic Grievance (Retrospective)",
+  "EconGrievanceProspInd" = "Economic Grievance (Prospective Individual)",
+  "EconGrievanceProspAgg" = "Economic Grievance (Prospective Aggregate)",
+  "EconGrievanceProspMostFams" = "Economic Grievance (Prospective Most Families)",
+  "GayNeighbor" = "Accept Gay Neighbor",
+  "GayFamily" = "Accept Gay Family",
+  "ForNeighbor" = "Accept Foreign Neighbor",
+  "ForPartner" = "Accept Foreign Partner",
+  "Ukraine" = "Ukraine Support",
+  "NativeJobs" = "Native Jobs Priority",
+  "NativeRights" = "Native Rights Support",
   "Religiosity" = "Religiosity",
-  "GayNeighbor" = "Anti-Gay Neighbor",
-  "GayFamily" = "Anti-Gay Family",
-  "ForNeighbor" = "Anti-Foreigner Neighbor",
-  "ForPartner" = "Anti-Foreigner Neighbor",
-  "Ukraine" = "Anti-Ukrainian Refugee"
+  "VoteFarRight" = "Far-Right Voting"
 )
 
-# Expanded covariates categorization
+# Setting labels for binary variables, i.e., T/F
+
 binary_covariates <- list(
-  Male = list(
-    values = c(1, 2),
-    labels = c("Male", "Female")
-  ),
-  Capital = list(
-    values = c(1, 2),
-    labels = c("Not Capital", "Capital")
-  ),
-  VoteFarRight = list(
-    values = c(0, 1),
-    labels = c("No", "Yes")
-  )
+  Male = list(values = c(1, 2), labels = c("Female", "Male")),
+  Capital = list(values = c(1, 2), labels = c("Rural", "Capital")),
+  VoteFarRight = list(values = c(0, 1), labels = c("Other", "Far-Right"))
 )
 
-special_covariates <- list(
+# Setting labels for ordinal variables, i.e., {1, 2, 3, 4, 5}
+
+ordinal_covariates <- list(
   Age = list(
-    values = c(1, 2, 3, 4, 5),
-    labels = c("Very Young", "Young", "Middle-Aged", "Older", "Elderly")
+    values = c(1, 2, 3, 4, 5, 6),
+    labels = c("15-19", "20-29", "30-39", "40-54", "55-64", "65+")
   ),
   Education = list(
     values = c(1, 2, 3),
-    labels = c("Low", "Medium", "High")
+    labels = c("Basic Education", "High School with Maturita", "Higher Education")
   ),
   Income = list(
+    values = c(0, 1, 2, 3, 4, 5),
+    labels = c("None", "<300 EUR", "300-500 EUR", "501-700 EUR", "701-900 EUR", "900+ EUR")
+  ),
+  FamIncome = list(
+    values = c(1, 2, 3, 4, 5),
+    labels = c("< 3,000 CZK", "3,000-5,999 CZK", "6,000-8,999 CZK", "9,000-12,999 CZK", ">13,000 CZK")
+  ),
+  IdeologyLR = list(
+    values = c(1, 2, 3, 4, 5),
+    labels = c("Def Left", "Rather Left", "Middle", "Rather Right", "Def Right")
+  ),
+  DemPolGrievance = list(
     values = c(1, 2, 3, 4),
-    labels = c("Low", "Lower-Middle", "Upper-Middle", "High")
+    labels = c("very sat", "rather sat", "rather unsat", "very unsat")
+  ),
+  PolicyPolGrievance = list(
+    values = c(1, 2, 3, 4),
+    labels = c("very sat", "rather sat", "rather unsat", "very unsat")
+  ),
+  EconGrievanceRetro = list(
+    values = c(1, 2, 3, 4, 5),
+    labels = c("much better", "better", "same", "worse", "much worse")
+  ),
+  EconGrievanceProspInd = list(
+    values = c(1, 2, 3, 4, 5),
+    labels = c("much better", "better", "same", "worse", "much worse")
+  ),
+  EconGrievanceProspAgg = list(
+    values = c(1, 2, 3, 4, 5),
+    labels = c("much better", "better", "same", "worse", "much worse")
+  ),
+  EconGrievanceProspMostFams = list(
+    values = c(1, 2, 3, 4, 5),
+    labels = c("much better", "better", "same", "worse", "much worse")
+  ),
+  GayNeighbor = list(
+    values = c(1, 2, 3, 4),
+    labels = c("would certainly NOT bother me", "would probably NOT mind", 
+               "would probably mind", "would certainly mind")
+  ),
+  GayFamily = list(
+    values = c(1, 2, 3, 4),
+    labels = c("would certainly NOT bother me", "would probably NOT mind", 
+               "would probably mind", "would certainly mind")
+  ),
+  ForNeighbor = list(
+    values = c(1, 2, 3, 4),
+    labels = c("would certainly NOT bother me", "would probably NOT mind", 
+               "would probably mind", "would certainly mind")
+  ),
+  ForPartner = list(
+    values = c(1, 2, 3, 4),
+    labels = c("would certainly NOT bother me", "would probably NOT mind", 
+               "would probably mind", "would certainly mind")
+  ),
+  Ukraine = list(
+    values = c(1, 2, 3, 4),
+    labels = c("would certainly NOT bother me", "would probably NOT mind", 
+               "would probably mind", "would certainly mind")
+  ),
+  NativeJobs = list(
+    values = c(1, 2, 3, 4),
+    labels = c("def disagree", "rather disagree", "rather agree", "def agree")
+  ),
+  NativeRights = list(
+    values = c(1, 2, 3, 4),
+    labels = c("def disagree", "rather disagree", "rather agree", "def agree")
+  ),
+  Religiosity = list(
+    values = c(1, 2, 3, 4, 5),
+    labels = c("never", "few times a year", "once per month", "once per week", "few times a week")
   )
 )
+#==================
+# 2. Core Functions
+#==================
 
-# Default labels for standard continuous covariates
-default_labels <- c("Very Low", "Low", "Moderate", "High", "Very High")
-
-# Improved marginal effects calculation function
-calculate_marginal_effects <- function(
-    model_out, 
-    covariate_name, 
-    values = NULL, 
-    labels = NULL, 
-    custom_quantiles = c(-1.5, -0.5, 0.5, 1.5)
-) {
-  # Determine appropriate values and labels
-  if (is.null(values) || is.null(labels)) {
-    if (covariate_name %in% names(binary_covariates)) {
-      # Binary covariates
-      values <- binary_covariates[[covariate_name]]$values
-      labels <- binary_covariates[[covariate_name]]$labels
-    } else if (covariate_name %in% names(special_covariates)) {
-      # Special covariates with predefined levels
-      values <- special_covariates[[covariate_name]]$values
-      labels <- special_covariates[[covariate_name]]$labels
-    } else {
-      # Default continuous covariates
-      values <- custom_quantiles
-      labels <- default_labels[1:length(values)]
-    }
+calculate_marginal_effects <- function(model_out, covariate_name) {
+  # Parameter setup
+  if(covariate_name %in% names(binary_covariates)) {
+    spec <- binary_covariates[[covariate_name]]
+    values <- spec$values
+    labels <- if(!is.null(spec$labels)) spec$labels else c("No", "Yes")
+  } else if(covariate_name %in% names(ordinal_covariates)) {
+    spec <- ordinal_covariates[[covariate_name]]
+    values <- spec$values
+    labels <- spec$labels
+  } else {
+    values <- seq(-2, 2, length.out = 5)
+    labels <- c("err", "err", "err", "err", "err")
   }
   
-  # Extract posterior samples
+  # Parameter extraction
   delta_post <- model_out$delta
   lambda_post <- model_out$lambda
   omega2_post <- model_out$omega2
-  
-  # Find columns corresponding to the covariate
-  delta_cols <- grep(paste0("^", covariate_name, "$"), colnames(delta_post))
-  if(length(delta_cols) == 0) {
-    stop(paste("Covariate", covariate_name, "not found in coefficients."))
+  sigma2_post <- if("sigma2" %in% names(model_out)) {
+    model_out$sigma2
+  } else {
+    matrix(1, nrow = nrow(delta_post), ncol = 1)
   }
   
-  # Find omega2 columns
+  # Find parameter columns
+  delta_col <- grep(paste0("^", covariate_name, "$"), colnames(delta_post))
+  lambda_cols <- grep(paste0("^", covariate_name, "\\.\\d+\\.1$"), colnames(lambda_post))
+  
+  if(length(delta_col) == 0 || length(lambda_cols) == 0) {
+    stop("Covariate not found in model parameters: ", covariate_name)
+  }
+  
+  # Get endorser information
   omega2_cols <- colnames(omega2_post)[grep("omega2", colnames(omega2_post))]
-  endorser_nums <- as.numeric(gsub("omega2\\.(\\d+)\\..*", "\\1", omega2_cols))
-  n_endorsers <- length(unique(endorser_nums))
+  endorser_nums <- unique(as.numeric(gsub("omega2\\.(\\d+)\\..*", "\\1", omega2_cols)))
   
   # Initialize probability array
-  combined_probs <- array(NA, dim = c(length(values), nrow(delta_post), n_endorsers))
-  valid_endorser_idx <- integer(0)
+  combined_probs <- array(NA, dim = c(length(values), nrow(delta_post), length(endorser_nums)))
   
   # Process each endorser
-  for(i_endorser in sort(unique(endorser_nums))) {
-    omega2_col <- paste0("omega2.", i_endorser, ".1")
-    if(!(omega2_col %in% colnames(omega2_post))) next
+  for(i_endorser in seq_along(endorser_nums)) {
+    e_num <- endorser_nums[i_endorser]
+    
+    omega2_col <- paste0("omega2.", e_num, ".1")
+    lambda_col <- paste0(covariate_name, ".", e_num, ".1")
+    
+    if(!all(c(omega2_col, lambda_col) %in% c(colnames(omega2_post), colnames(lambda_post)))) next
     
     for(i_mcmc in 1:nrow(delta_post)) {
-      coef_value <- delta_post[i_mcmc, delta_cols]
-      omega2_value <- omega2_post[i_mcmc, omega2_col]
+      lambda_val <- lambda_post[i_mcmc, lambda_col]
+      delta_val <- delta_post[i_mcmc, delta_col]
+      total_effect <- lambda_val + delta_val
+      total_var <- omega2_post[i_mcmc, omega2_col] + sigma2_post[i_mcmc, 1]
       
-      for(i_val in 1:length(values)) {
-        effect_size <- values[i_val] * coef_value
-        z_score <- effect_size / sqrt(omega2_value)
-        combined_probs[i_val, i_mcmc, length(valid_endorser_idx) + 1] <- pnorm(z_score)
+      for(i_val in seq_along(values)) {
+        effect_size <- values[i_val] * total_effect
+        z_score <- effect_size / sqrt(total_var)
+        combined_probs[i_val, i_mcmc, i_endorser] <- pnorm(z_score)
       }
     }
-    valid_endorser_idx <- c(valid_endorser_idx, i_endorser)
   }
   
-  # Average probabilities
+  # Average across endorsers
   averaged_probs <- apply(combined_probs, c(1,2), mean, na.rm = TRUE)
   
-  # Create result data frame
-  result <- data.frame(
+  data.frame(
     value = values,
     category = factor(labels, levels = labels),
+    mean = apply(averaged_probs, 1, mean),
     q025 = apply(averaged_probs, 1, quantile, 0.025),
     q250 = apply(averaged_probs, 1, quantile, 0.25),
     median = apply(averaged_probs, 1, median),
     q750 = apply(averaged_probs, 1, quantile, 0.75),
     q975 = apply(averaged_probs, 1, quantile, 0.975)
   )
-  
-  return(result)
 }
 
-#============================================
-# 5. Categorize Plots Function
-#============================================
-
-# Create categorized plots function for academic publication
-create_categorized_plots <- function(plots_list, output_dir = "~/projects/AaD_Research/output/plots/czechia/marginal") {
-  # Define categories
-  categories <- list(
-    "SES_Demographics" = c("Age", "Male", "Education", "Capital", "IdeologyLR", "Income", "FamIncome", "Religiosity"),
-    "Political_Economic_Grievances" = c("DemPolGrievance", "PolicyPolGrievance", "EconGrievanceRetro", "EconGrievanceProspInd",
-                                        "EconGrievanceProspAgg", "EconGrievanceProspMostFams"),
-    "Nationalism" = c("NativeRights", "NativeJobs", "VoteFarRight"),
-    "Boundary_Maintenance" = c("GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner", "Ukraine")
-  )
-  
-  # Category labels for plots
-  category_labels <- c(
-    "SES_Demographics" = "Socioeconomic and Demographic Factors",
-    "Political_Economic_Grievances" = "Political and Economic Grievances",
-    "Nationalism" = "Nationalism and National Identity",
-    "Boundary_Maintenance" = "Group Boundary Maintenance"
-  )
-  
-  # Create output directory if it doesn't exist
-  if(!dir.exists(output_dir)) {
-    dir.create(output_dir, recursive = TRUE)
-  }
-  
-  # Process each category
-  for(cat_name in names(categories)) {
-    # Get variables in this category
-    cat_vars <- categories[[cat_name]]
-    
-    # Filter plots for this category
-    cat_plots <- plots_list[names(plots_list) %in% cat_vars]
-    cat_plots <- cat_plots[!sapply(cat_plots, is.null)]
-    
-    if(length(cat_plots) > 0) {
-      # Determine layout based on number of plots
-      n_plots <- length(cat_plots)
-      if(n_plots <= 4) {
-        n_col <- 2
-        n_row <- ceiling(n_plots/2)
-        width <- 8.5  # Standard journal width (inches)
-        height <- 4 * n_row
-      } else if(n_plots <= 6) {
-        n_col <- 3
-        n_row <- 2
-        width <- 8.5
-        height <- 6
-      } else {
-        n_col <- 3
-        n_row <- ceiling(n_plots/3)
-        width <- 8.5
-        height <- 3 * n_row
-      }
-      
-      # Create combined plot
-      combined_plot <- ggarrange(
-        plotlist = cat_plots, 
-        ncol = n_col, 
-        nrow = n_row,
-        common.legend = TRUE,
-        legend = "bottom"
-      )
-      
-      # Add category title
-      combined_plot <- annotate_figure(
-        combined_plot,
-        top = text_grob(
-          category_labels[cat_name],
-          face = "bold", size = 12, family = "Times"
-        )
-      )
-      
-      # Save combined plot
-      output_path <- file.path(output_dir, paste0("FigureCategory_", cat_name, ".pdf"))
-      ggsave(output_path, combined_plot, width = width, height = height, dpi = 300, units = "in")
-      message(paste("Saved category figure to:", output_path))
-      
-      # Save individual plots with improved academic formatting
-      for(var_name in names(cat_plots)) {
-        # Apply academic formatting to individual plot
-        academic_plot <- cat_plots[[var_name]] +
-          theme(
-            text = element_text(family = "Times"),
-            axis.title = element_text(size = 11),
-            axis.text = element_text(size = 10),
-            plot.title = element_text(size = 12, hjust = 0.5),
-            plot.subtitle = element_text(size = 10, hjust = 0.5),
-            panel.grid.major.y = element_line(color = "gray90", size = 0.2),
-            panel.grid.major.x = element_blank(),
-            panel.grid.minor = element_blank()
-          )
-        
-        # Save individual academic plot
-        ind_output_path <- file.path(output_dir, paste0("academic_", var_name, ".pdf"))
-        ggsave(ind_output_path, academic_plot, width = 5, height = 4, dpi = 300, units = "in")
-      }
-    }
-  }
-}
-
-#============================================
-# 5. Plot Function
-#============================================
-
-# Improve the individual plot function for academic publication
 plot_marginal_effects <- function(effects_data, covariate_name) {
-  # Prepare plot data
-  plot_data <- effects_data
-  
-  # Get formatted variable name for display
-  var_label <- ifelse(
-    covariate_name %in% names(variable_labels),
-    variable_labels[covariate_name],
-    gsub("([[:lower:]])([[:upper:]])", "\\1 \\2", covariate_name)
-  )
-  
-  # Set academic color palette
-  box_color <- "#3c78d8"  # Professional blue for academic publishing
-  
-  # Create box and whisker plot with academic styling
-  p <- ggplot(plot_data, aes(x = category, y = median)) +
+  ggplot(effects_data, aes(x = category)) +
     geom_boxplot(
       aes(
         ymin = q025,
@@ -450,92 +398,88 @@ plot_marginal_effects <- function(effects_data, covariate_name) {
         ymax = q975
       ),
       stat = "identity",
-      width = 0.7,
-      position = position_dodge(width = 0.8),
-      fill = box_color,
-      alpha = 0.8,
-      color = "black"
+      fill = "#2c7bb6",
+      color = "darkblue",
+      width = 0.6,
+      outlier.shape = NA
     ) +
+    geom_hline(yintercept = 0.5, linetype = "dashed", color = "darkred") +
     labs(
-      title = var_label,
-      x = NULL,
+      title = variable_labels[covariate_name],
+      x = "Category",
       y = "Probability of Support"
     ) +
     scale_y_continuous(
-      limits = c(0, 1), 
+      limits = c(0, 1),
       breaks = seq(0, 1, 0.2),
-      labels = scales::percent_format(accuracy = 1)
+      labels = scales::percent_format()
     ) +
-    theme_bw(base_size = 11) +
+    theme_bw(base_size = 12) +
     theme(
       text = element_text(family = "Times"),
-      panel.grid.minor = element_blank(),
-      panel.grid.major.x = element_blank(),
-      panel.border = element_rect(color = "black", fill = NA, size = 0.5),
-      axis.text = element_text(color = "black"),
       axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
-      plot.title = element_text(face = "bold", size = 12, hjust = 0.5),
-      legend.position = "none",
-      plot.margin = margin(10, 10, 10, 10)
+      panel.grid.major.x = element_blank(),
+      plot.title = element_text(face = "bold", hjust = 0.5),
+      panel.border = element_rect(color = "black", fill = NA, size = 0.5)
     )
-  
-  return(p)
 }
 
-################################
-# End of Functions
-################################
+#=========================
+# 3. Function Calls (Main)
+#=========================
 
-############## Run the functions
+# Main analysis
+message("Starting Bayesian endorsement analysis...\n")
+start_time <- Sys.time()
+output_dir <- "~/projects/AaD_Research/output/plots/czechia/covar"
 
-successful_plots <- list()
-
-for(cov in covariates_of_interest) {
-  print(paste("processing covariate:", cov))
-  effect_data <- calculate_marginal_effects(endorse_object, cov)
-  print(paste("successfully provessed covariate:", cov))
-  successful_plots[[cov]] <- plot_marginal_effects(effect_data, cov)
+# Create output directory if needed
+if(!dir.exists(output_dir)) {
+  dir.create(output_dir)
+  message("Created output directory: ", normalizePath(output_dir))
 }
 
-############## End run functions
+total_covariates <- length(covariates_of_interest)
+success_count <- 0
+error_count <- 0
 
-output_dir <- "~/projects/AaD_Research/output/plots/czechia/marginal"
+message("Processing ", total_covariates, " covariates:")
+pb <- txtProgressBar(min = 0, max = total_covariates, style = 3)
 
-# To use this updated plotting approach, add this after your existing code:
-if(length(successful_plots) > 0) {
-  # Make sure ggpubr is loaded
-  if(!require(ggpubr)) {
-    install.packages("ggpubr")
-    library(ggpubr)
-  }
+for(i in seq_along(covariates_of_interest)) {
+  cov <- covariates_of_interest[i]
+  setTxtProgressBar(pb, i)
   
-  # Create the categorized plots
-  create_categorized_plots(successful_plots)
-  
-  # Create a comprehensive appendix figure if needed
-  all_vars_output <- file.path(output_dir, "AppendixFigure_AllMarginalEffects.pdf")
-  
-  # For the appendix, arrange all plots in a grid
-  all_plots <- ggarrange(
-    plotlist = successful_plots,
-    ncol = 4,
-    nrow = ceiling(length(successful_plots)/4),
-    common.legend = TRUE,
-    legend = "bottom"
-  )
-  
-  all_plots <- annotate_figure(
-    all_plots,
-    top = text_grob(
-      "Appendix Figure 1: Marginal Effects of All Predictors on Militia Support",
-      face = "bold", size = 14, family = "Times"
-    ),
-    bottom = text_grob(
-      "Note: Boxes show 50% credible intervals; whiskers show 95% credible intervals.",
-      hjust = 0, x = 0, size = 10, family = "Times", face = "italic"
+  tryCatch({
+    # Calculate effects and generate plot
+    effects <- calculate_marginal_effects(endorse_object, cov)
+    p <- plot_marginal_effects(effects, cov)
+    
+    # Save plot immediately
+    ggsave(
+      filename = file.path(output_dir, paste0(cov, "_effect.pdf")),
+      plot = p,
+      width = 8,
+      height = 6,
+      device = "pdf"
     )
-  )
-  
-  ggsave(all_vars_output, all_plots, width = 11, height = 14, dpi = 300, limitsize = FALSE)
-  message(paste("Saved appendix figure to:", all_vars_output))
+    
+    # Track success
+    success_count <- success_count + 1
+    message("\n✅ Successfully processed: ", cov)
+    
+  }, error = function(e) {
+    # Track errors
+    error_count <- error_count + 1
+    message("\n❌ Failed to process ", cov, ": ", conditionMessage(e))
+  })
 }
+close(pb)
+
+# Final report
+message("\n===== Analysis Summary =====")
+message("Successfully processed: ", success_count, " covariates")
+message("Failed to process:     ", error_count, " covariates")
+message("Execution time:        ", round(difftime(Sys.time(), start_time, units = "mins"), 1), " minutes")
+message("Output location:       ", normalizePath(output_dir))
+message("===================================")

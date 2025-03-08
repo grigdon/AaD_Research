@@ -248,7 +248,7 @@ ordinal_covariates <- list(
   ),
   educ = list(
     values = c(1, 2, 3),
-    labels = c("Basic Education", "High School", "Higher Education")
+    labels = c("Basic Education", "High School with Maturita", "Higher Education")
   ),
   income = list(
     values = c(0, 1, 2, 3, 4, 5),
@@ -469,7 +469,7 @@ plot_marginal_effects <- function(effects_data, covariate_name) {
 # Main analysis
 message("Starting Bayesian endorsement analysis...\n")
 start_time <- Sys.time()
-output_dir <- "~/projects/AaD_Research/output/plots/slovakia/coef"
+output_dir <- "~/projects/AaD_Research/output/plots/slovakia/covar"
 
 # Create output directory if needed
 if(!dir.exists(output_dir)) {
