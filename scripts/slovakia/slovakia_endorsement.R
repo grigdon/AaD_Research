@@ -73,6 +73,7 @@ endorse_object <- endorse(Y = Y,
                                                      ForPartner + Ukraine + VoteFarRight + Nationalist + 
                                                      FAMincome + Religiosity
                                                   ),
+                          omega2.out = TRUE,
                           hierarchical = FALSE
 )
 
