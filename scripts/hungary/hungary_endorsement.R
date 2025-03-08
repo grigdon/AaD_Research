@@ -1,4 +1,4 @@
-# Complete Analysis Script for Militia Support in Czechia
+# Complete Analysis Script for Militia Support in Hungary
 # This script processes survey data, fits endorsement models, and analyzes marginal effects
 # for understanding factors that influence militia support
 
@@ -16,37 +16,39 @@ library(tidyr)
 library(Cairo)
 
 #====================================================
-# 1. Data Loading and Initial Processing for Czechia
+# 1. Data Loading and Initial Processing for Hungary
 #====================================================
 
-CZData <- read_sav("~/projects/AaD_Research/datasets/scrubbed_datasets/czechia_scrubbed.sav")
+HUData <- read_sav("~/projects/AaD_Research/datasets/scrubbed_datasets/hungary_scrubbed.sav")
 
 # Define questions for the endorsement experiment
-questions <- c("id", "Q10AA_control_reversed", "Q10AB_control_reversed", "Q10AC_control_reversed",
-               "Q10BA_experiment_reversed", "Q10BB_experiment_reversed", "Q10BC_experiment_reversed"
+data_hu_questions <- c("id", "A10A_1_control_reversed", "A10A_2_control_reversed", "A10A_3_control_reversed",
+               "A10B_1_experiment_reversed", "A10B_2_experiment_reversed", "A10B_3_experiment_reversed"
 )
 # Select relevant columns for endorsement analysis
-data_cz_questions <- CZData[questions]
+data_hu_questions <- HUData[data_hu_questions]
 
 # Define variables to keep
-vars <- c("id", "Male", "Age", "Education", "Capital", "IdeologyLR", "Income", "FamIncome", "DemPolGrievance", "PolicyPolGrievance",
+vars <- c("id", "Male", "Age", "Education", "Capital", "IdeologyLR", "FamIncome",  "DemPolGrievance", "PolicyPolGrievance",
           "EconGrievanceRetro", "EconGrievanceProspInd", "EconGrievanceProspAgg", "EconGrievanceProspMostFams",
-          "GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner", "Ukraine",
-          "NativeJobs", "NativeRights", "Religiosity", "VoteFarRight")
+          "GayNeighbor", "GayFamily", "GayLesRights", "ForNeighbor", "ForPartner", "Ukraine",
+          "NativeJobs", "NativeRights", "DemonstrateNational", "Religiosity", "VoteFarRight"
+)
 
 # Subset and recode variables
-data_cz_vars <- CZData[vars]
+data_hu_vars <- HUData[vars]
 
 # Convert all variables to numeric
-data_cz_vars <- mutate(data_cz_vars, across(everything(), ~as.numeric(.)))
+data_hu_vars <- mutate(data_hu_vars, across(everything(), ~as.numeric(.)))
 
 # Merge the questions and standardized variables datasets
-data_cz <- left_join(data_cz_questions, data_cz_vars, by = "id")
+data_hu <- left_join(data_hu_questions, data_hu_vars, by = "id")
 
 # Create named list for response questions
-Y <- list(Q1 = c("Q10AA_control_reversed", "Q10BA_experiment_reversed"), 
-          Q2 = c("Q10AB_control_reversed", "Q10BB_experiment_reversed"), 
-          Q3 = c("Q10AC_control_reversed", "Q10BC_experiment_reversed"))
+Y <- list(Q1 = c("A10A_1_control_reversed", "A10B_1_experiment_reversed"), 
+          Q2 = c("A10A_2_control_reversed", "A10B_2_experiment_reversed"), 
+          Q3 = c("A10A_3_control_reversed", "A10B_3_experiment_reversed")
+)
 
 #====================================================
 # 2. Creating the endorse object
@@ -55,14 +57,14 @@ Y <- list(Q1 = c("Q10AA_control_reversed", "Q10BA_experiment_reversed"),
 # Creating an endorse object, excluding all covariates that are in the set { traditionalism }
 
 endorse_object <- endorse(Y = Y, 
-                          data = data_cz,
+                          data = data_hu,
                           identical.lambda = FALSE,
                           covariates = TRUE,
-                          formula.indiv = formula( ~ Male + Age + Education + Capital + IdeologyLR + Income + FamIncome + DemPolGrievance +
-                                                   PolicyPolGrievance + EconGrievanceRetro + EconGrievanceProspInd + EconGrievanceProspAgg +
-                                                   EconGrievanceProspMostFams + GayNeighbor + GayFamily + ForNeighbor + ForPartner + Ukraine +
-                                                   NativeJobs + NativeRights + Religiosity + VoteFarRight
-                                                  ),
+                          formula.indiv = formula( ~ Male + Age + Education + Capital + IdeologyLR + FamIncome + DemPolGrievance + PolicyPolGrievance +
+                                                  EconGrievanceRetro + EconGrievanceProspInd + EconGrievanceProspAgg + EconGrievanceProspMostFams +
+                                                  GayNeighbor + GayFamily + GayLesRights + ForNeighbor + ForPartner + Ukraine +
+                                                  NativeJobs + NativeRights + DemonstrateNational + Religiosity + VoteFarRight
+                          ),
                           omega2.out = TRUE,
                           hierarchical = FALSE
 )
@@ -73,22 +75,21 @@ endorse_object <- endorse(Y = Y,
 
 # Create the dataframe using posterior samples
 delta_matrix_values <- data.frame(
-  mean = apply(endorse_object$delta[, 2:23], 2, mean),
-  lower = apply(endorse_object$delta[, 2:23], 2, quantile, 0.025),
-  upper = apply(endorse_object$delta[, 2:23], 2, quantile, 0.975)
+  mean = apply(endorse_object$delta[, 2:24], 2, mean),
+  lower = apply(endorse_object$delta[, 2:24], 2, quantile, 0.025),
+  upper = apply(endorse_object$delta[, 2:24], 2, quantile, 0.975)
 )
 
 # Add variable names and categories
-delta_matrix_values$variables <- colnames(endorse_object$delta)[2:23]
+delta_matrix_values$variables <- colnames(endorse_object$delta)[2:24]
 delta_matrix_values$category <- NA
-
 
 # Define categories
 ses_demographics <- c("Age", "Male", "Education", "Capital", "IdeologyLR", "Income", "FamIncome", "Religiosity")
 political_economic_grievances <- c("DemPolGrievance", "PolicyPolGrievance", "EconGrievanceRetro", "EconGrievanceProspInd",
-                                   "EconGrievanceProspAgg", "EconGrievanceProspMostFams")
+                                   "EconGrievanceProspAgg", "EconGrievanceProspMostFams",  "DemonstrateNational")
 nationalism <- c( "NativeRights", "NativeJobs", "VoteFarRight")
-boundary_maintenance <- c("GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner", "Ukraine")
+boundary_maintenance <- c("GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner", "Ukraine", "GayLesRights")
 
 # Assign categories
 delta_matrix_values <- delta_matrix_values %>%
@@ -118,30 +119,31 @@ delta_matrix_values$category <- factor(delta_matrix_values$category, levels = ca
 
 # Define custom labels for variables
 custom_labels <- c(
-  "Age" = "Age",
-  "Male" = "Male",
-  "Education" = "Education",
-  "Capital" = "Capital",
-  "IdeologyLR" = "Political Ideology",
-  "Income" = "Personal Income",
-  "FamIncome" = "Family Income",
-  "DemPolGrievance" = "Political Grievance (Democracy)",
-  "PolicyPolGrievance" = "Policy Grievance",
-  "EconGrievanceRetro" = "Economic Grievance (Retro)",
-  "EconGrievanceProspInd" = "Economic Grievance (Prospective-Ind)",
-  "EconGrievanceProspAgg" = "Economic Grievance (Prospective-Agg)",
-  "EconGrievanceProspMostFams" = "Economic Grievance (ProspMostFams)",
-  "NativeRights" = "Native Rights",
-  "NativeJobs" = "Native Jobs",
-  "VoteFarRight" = "Far Right Voter",
-  "Religiosity" = "Religiosity",
-  "GayNeighbor" = "Anti-Gay Neighbor",
-  "GayFamily" = "Anti-Gay Family",
-  "ForNeighbor" = "Anti-Foreigner Neighbor",
-  "ForPartner" = "Anti-Foreigner Neighbor",
-  "Ukraine" = "Anti-Ukrainian Refugee"
+  "Age" = "Age", 
+  "Male" = "Male", 
+  "Education" = "Education", 
+  "Capital" = "Capital", 
+  "IdeologyLR" = "Political Ideology", 
+  "Income" = "Personal Income", 
+  "FamIncome" = "Family Income", 
+  "DemPolGrievance" = "Political Grievance (Democracy)", 
+  "PolicyPolGrievance" = "Policy Grievance", 
+  "EconGrievanceRetro" = "Economic Grievance (Retro)", 
+  "EconGrievanceProspInd" = "Economic Grievance (Prospective-Ind)", 
+  "EconGrievanceProspAgg" = "Economic Grievance (Prospective-Agg)", 
+  "EconGrievanceProspMostFams" = "Economic Grievance (ProspMostFams)", 
+  "DemonstrateNational" = "Demontrates Nationalism", 
+  "NativeRights" = "Native Rights", 
+  "NativeJobs" = "Native Jobs", 
+  "VoteFarRight" = "Far Right Voter", 
+  "Religiosity" = "Religiosity", 
+  "GayNeighbor" = "Anti-Gay Neighbor", 
+  "GayFamily" = "Anti-Gay Family", 
+  "ForNeighbor" = "Anti-Foreigner Neighbor", 
+  "ForPartner" = "Anti-Foreigner Neighbor", 
+  "Ukraine" = "Anti-Ukrainian Refugee",
+  "GayLesRights" = "Gay Lesbian Rights" 
 )
-
 
 # Create the plot
 plot <- ggplot(delta_matrix_values, aes(x = variables, y = mean)) +
@@ -152,7 +154,7 @@ plot <- ggplot(delta_matrix_values, aes(x = variables, y = mean)) +
   facet_grid(category ~ ., scales = "free_y", space = "free_y") +
   scale_x_discrete(labels = custom_labels) +
   theme_classic() +
-  ggtitle("Czechia: Coefficient Estimates by Explanatory Variable") + 
+  ggtitle("Hungary: Coefficient Estimates by Explanatory Variable") + 
   theme(
     plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
     axis.text.y = element_text(size = 10),
@@ -165,7 +167,7 @@ plot <- ggplot(delta_matrix_values, aes(x = variables, y = mean)) +
   labs(x = NULL, y = "Coefficient Estimate")
 
 # Save to PDF
-ggsave("~/projects/AaD_Research/output/plots/czechia/coef/czechia_coef_plot.pdf", plot, width = 12, height = 10)
+ggsave("~/projects/AaD_Research/output/plots/hungary/coef/czechia_coef_plot.pdf", plot, width = 12, height = 10)
 
 #===================================================
 # Bayesian Covariate Analysis: Boxplot Visualization
@@ -179,10 +181,10 @@ ggsave("~/projects/AaD_Research/output/plots/czechia/coef/czechia_coef_plot.pdf"
 # Note: Must be identical to column titles.
 
 covariates_of_interest <- c(
-  "Male", "Age", "Education", "Capital", "IdeologyLR", "Income", "FamIncome", "DemPolGrievance", "PolicyPolGrievance",
+  "Male", "Age", "Education", "Capital", "IdeologyLR", "FamIncome",  "DemPolGrievance", "PolicyPolGrievance",
   "EconGrievanceRetro", "EconGrievanceProspInd", "EconGrievanceProspAgg", "EconGrievanceProspMostFams",
-  "GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner", "Ukraine",
-  "NativeJobs", "NativeRights", "Religiosity", "VoteFarRight"
+  "GayNeighbor", "GayFamily", "GayLesRights", "ForNeighbor", "ForPartner", "Ukraine",
+  "NativeJobs", "NativeRights", "DemonstrateNational", "Religiosity", "VoteFarRight"
 )
 
 # Variable labels for plotting, i.e., the covariate "Age" would be displayed as "Age Group"
@@ -203,20 +205,22 @@ variable_labels <- c(
   "EconGrievanceProspMostFams" = "Economic Grievance (Prospective Most Families)",
   "GayNeighbor" = "Accept Gay Neighbor",
   "GayFamily" = "Accept Gay Family",
+  "GayLesRights" = "Gay Lesbian Rights",
   "ForNeighbor" = "Accept Foreign Neighbor",
   "ForPartner" = "Accept Foreign Partner",
   "Ukraine" = "Ukraine Support",
   "NativeJobs" = "Native Jobs Priority",
   "NativeRights" = "Native Rights Support",
   "Religiosity" = "Religiosity",
-  "VoteFarRight" = "Far-Right Voting"
+  "VoteFarRight" = "Far-Right Voting",
+  "DemonstrateNational" = "Demonstrates Nationalism"
 )
 
 # Setting labels for binary variables, i.e., T/F
 
 binary_covariates <- list(
   Male = list(values = c(1, 2), labels = c("Female", "Male")),
-  Capital = list(values = c(1, 2), labels = c("Rural", "Capital")),
+  Capital = list(values = c(1, 2), labels = c("Not Budapest", "Budapest Capital Central Region")),
   VoteFarRight = list(values = c(0, 1), labels = c("Other", "Far-Right"))
 )
 
@@ -224,20 +228,20 @@ binary_covariates <- list(
 
 ordinal_covariates <- list(
   Age = list(
-    values = c(1, 2, 3, 4, 5, 6),
-    labels = c("15-19", "20-29", "30-39", "40-54", "55-64", "65+")
+    values = c(1, 2, 3, 4, 5),
+    labels = c("> 26", "27-36", "37-50", "51-65", "65+")
   ),
   Education = list(
     values = c(1, 2, 3),
     labels = c("Basic Education", "High School with Maturita", "Higher Education")
   ),
   Income = list(
-    values = c(0, 1, 2, 3, 4, 5),
-    labels = c("None", "<300 EUR", "300-500 EUR", "501-700 EUR", "701-900 EUR", "900+ EUR")
+    values = c(1, 2, 3, 4, 5),
+    labels = c("< 100,000 HUF", "", "100,000-149,999 HUF", "150,000-199,999 HUF", "200,000-249,999 HUF", "> 300,000 HUF")
   ),
   FamIncome = list(
     values = c(1, 2, 3, 4, 5),
-    labels = c("< 3,000 CZK", "3,000-5,999 CZK", "6,000-8,999 CZK", "9,000-12,999 CZK", ">13,000 CZK")
+    labels = c("Major Financial Issues", "Some Financial Issues", "Barely Make Ends Meet", "Make Ends Meet", "Living Without Worries")
   ),
   IdeologyLR = list(
     values = c(1, 2, 3, 4, 5),
@@ -277,6 +281,10 @@ ordinal_covariates <- list(
     labels = c("would certainly NOT bother me", "would probably NOT mind", 
                "would probably mind", "would certainly mind")
   ),
+  GayLesRights = list(
+    values = c(1, 2, 3, 4, 5),
+    labels = c("def agree", "rather agree", "not sure", "rather disagree", "def disagree")
+  ),
   ForNeighbor = list(
     values = c(1, 2, 3, 4),
     labels = c("would certainly NOT bother me", "would probably NOT mind", 
@@ -303,8 +311,13 @@ ordinal_covariates <- list(
   Religiosity = list(
     values = c(1, 2, 3, 4, 5),
     labels = c("never", "few times a year", "once per month", "once per week", "few times a week")
+  ),
+  DemonstrateNational = list(
+    values = c(1, 2, 3, 4),
+    labels = c("no/never","once", "2-3 times", "3+ times")
   )
 )
+
 #==================
 # 2. Core Functions
 #==================
@@ -431,7 +444,7 @@ plot_marginal_effects <- function(effects_data, covariate_name) {
 # Main analysis
 message("Starting Bayesian endorsement analysis...\n")
 start_time <- Sys.time()
-output_dir <- "~/projects/AaD_Research/output/plots/czechia/covar"
+output_dir <- "~/projects/AaD_Research/output/plots/hungary/covar"
 
 # Create output directory if needed
 if(!dir.exists(output_dir)) {
@@ -484,5 +497,6 @@ message("Execution time:        ", round(difftime(Sys.time(), start_time, units 
 message("Output location:       ", normalizePath(output_dir))
 message("===================================")
 
-# clears environment variables
+# clear all environment variables
+
 rm(list = ls())

@@ -172,7 +172,7 @@ plot <- ggplot(delta_matrix_values, aes(x = variables, y = mean)) +
           facet_grid(category ~ ., scales = "free_y", space = "free_y") +
           scale_x_discrete(labels = custom_labels) +
           theme_classic() +
-          ggtitle("Model 2: Coefficient Estimates by Category") + 
+          ggtitle("Slovakia: Coefficient Estimates by Explanatory Variable") + 
           theme(
             plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
             axis.text.y = element_text(size = 10),
@@ -521,3 +521,6 @@ message("Failed to process:     ", error_count, " covariates")
 message("Execution time:        ", round(difftime(Sys.time(), start_time, units = "mins"), 1), " minutes")
 message("Output location:       ", normalizePath(output_dir))
 message("===================================")
+
+# clears environment variables
+rm(list = ls())
