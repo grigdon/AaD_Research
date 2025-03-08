@@ -288,5 +288,7 @@ all_covariate_results <- analyze_all_covariates(
    output_dir = "~/projects/AaD_Research/output/plots/slovakia/test"
 )
 
+#comment
+
 omega_matrix <- as.data.frame(endorse_object$omega2)
 lambda_matrix <- as.data.frame(endorse_object$lambda)
