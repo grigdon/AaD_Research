@@ -24,11 +24,17 @@ h <- data.frame(
   "Agree"             = apply(data_hu_questions[2:7], 2, prop, y = 3),
   "Strongly Agree"    = apply(data_hu_questions[2:7], 2, prop, y = 4)
 )
-# Add row names manually and set a specific order
+# Add row names and set a specific order
 h$rowname <- rownames(h)
-h$rowname <- factor(h$rowname, levels = c("A10A_1_control_reversed", "A10B_1_experiment_reversed",
-                                          "A10A_2_control_reversed", "A10B_2_experiment_reversed",
-                                          "A10A_3_control_reversed", "A10B_3_experiment_reversed"))
+
+h$rowname <- factor(h$rowname, 
+                    levels = c("A10A_1_control_reversed", "A10B_1_experiment_reversed",
+                               "A10A_2_control_reversed", "A10B_2_experiment_reversed",
+                               "A10A_3_control_reversed", "A10B_3_experiment_reversed"),
+                    labels = c("Control A", "Experimental A",
+                               "Control B", "Experimental B",
+                               "Control C", "Experimental C"))
+
 mh <- melt(h, id.vars = "rowname")
 
 #===============================
@@ -84,6 +90,17 @@ mean_df$question <- toupper(gsub("q10([a-z])_.*", "\\1", mean_df$question))
 #==================
 # Grouped Bar Graph
 #==================
+
+# Change var names
+
+mean_df$question <- gsub("q10a_.*", "A", mean_df$question)
+mean_df$question <- gsub("q10b_.*", "B", mean_df$question)
+mean_df$question <- gsub("q10c_.*", "C", mean_df$question)
+
+mean_df$question <- factor(mean_df$question,
+                           levels = c("A", "B", "C"),
+                           labels = c("Question A", "Question B", "Question C"))
+
 compare_bar_graph <- ggplot(mean_df, aes(x = question, y = mean_response, fill = group)) +
   geom_bar(stat = "identity", position = position_dodge(width = 0.8), width = 0.7, color = "black", size = 0.2) +
   labs(title = "Comparison of Mean Survey Responses",
