@@ -78,6 +78,37 @@ endorse_object <- endorse(Y = Y,
 )
 
 #====================================================
+# 2.5 Output the acceptance ratio for each question
+#====================================================
+
+# Extract acceptance ratios from the endorse object
+acceptance_ratios <- data.frame(
+  Question = paste("Question", 1:3),
+  Ratio = endorse_object$accept.ratio
+)
+
+# Create a bar plot of acceptance ratios
+acceptance_plot <- ggplot(acceptance_ratios, aes(x = Question, y = Ratio)) +
+  geom_bar(stat = "identity", fill = "#4682B4", width = 0.6) +
+  geom_text(aes(label = sprintf("%.3f", Ratio)), vjust = -0.5, size = 4) +
+  scale_y_continuous(limits = c(0, 1.0), breaks = seq(0, 1, by = 0.1)) +
+  labs(
+    title = "Slovakia: Metropolis-Hastings Acceptance Ratios by Question",
+    x = NULL,
+    y = "Acceptance Ratio"
+  ) +
+  theme_classic() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    axis.text = element_text(size = 12),
+    axis.title = element_text(size = 12, face = "bold")
+  )
+
+# Save the plot
+ggsave("~/projects/AaD_Research/output/metro/slovakia_acceptance_ratios.pdf", 
+       acceptance_plot, width = 8, height = 6)
+
+#====================================================
 # 3. Plotting coefficient plots from the delta matrix 
 #====================================================
 
