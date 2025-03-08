@@ -1,6 +1,6 @@
 # Complete Analysis Script for Militia Support in Slovakia
-# This script processes survey data, fits endorsement models, and analyzes marginal effects
-# for understanding factors that influence militia support
+# This script processes survey data, fits endorsement models, and analyzes 'marginal effects'
+# for understanding factors that influence militia support in Slovakia.
 
 # Load required packages
 library(endorse)
@@ -195,7 +195,8 @@ ggsave("~/projects/AaD_Research/output/plots/slovakia/coef/slovakia_coef_plot.pd
 # 1. Data Assignment
 #===================
 
-# The covariates you wish to analyze
+# The covariates you wish to analyze.
+# Note: Must be identical to column titles.
 
 covariates_of_interest <- c(
   "age", "male", "educ", "capital", "ideology", "income", "FAMincome",
@@ -206,7 +207,7 @@ covariates_of_interest <- c(
   "Religiosity", "GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner", "Ukraine"
 )
 
-# Variable labels for plotting
+# Variable labels for plotting, i.e., the covariate "age" would be displayed as "Age Group"
 
 variable_labels <- c(
   "age" = "Age Group", "male" = "Gender", "educ" = "Education Level",
