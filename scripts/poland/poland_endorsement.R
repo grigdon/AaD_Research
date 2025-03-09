@@ -521,4 +521,4 @@ message("Output location:       ", normalizePath(output_dir))
 message("===================================")
 
 # clear all environment variables
-# rm(list = ls())
+rm(list = ls())
