@@ -1,4 +1,4 @@
-# Respository for the Armed and Dangerous Research Paper 
+# 'Armed and Dangerous' Codebase 
 
 ## Overview
 This repository contains scripts and data for analyzing survey data related to the AaD Research paper.
