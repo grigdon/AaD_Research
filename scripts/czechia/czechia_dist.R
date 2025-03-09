@@ -15,6 +15,7 @@ questions <- c("id", "Q10AA_control_reversed", "Q10AB_control_reversed", "Q10AC_
 data_cz_questions <- data_cz[questions]
 
 # Define a function to calculate the proportion of responses equal to y
+
 prop <- function(x, y) {
   sum(x == y, na.rm = TRUE) / sum(!is.na(x))
 }
@@ -85,26 +86,20 @@ treatment_long$group <- "Experimental"
 
 # Combine the two groups
 mean_df <- rbind(control_long, treatment_long)
-# Extract question letter (a, b, c) for cleaner labeling and convert to uppercase
-mean_df$question <- toupper(gsub("q10([a-z])_.*", "\\1", mean_df$question))
 
-#==================
-# Grouped Bar Graph
-#==================
+# Extract question type (A, B, C) from the column names
+# For Czech data, the format is more complex: Q10AA_control_reversed, Q10AB_control_reversed, etc.
+mean_df$question_type <- substr(mean_df$question, 5, 5)  # Extract the second letter (A, B, C)
 
-# Change var names
+# Create factor for proper ordering and labeling
+mean_df$question_type <- factor(mean_df$question_type,
+                                levels = c("A", "B", "C"),
+                                labels = c("Question A", "Question B", "Question C"))
 
-mean_df$question <- gsub("q10a_.*", "A", mean_df$question)
-mean_df$question <- gsub("q10b_.*", "B", mean_df$question)
-mean_df$question <- gsub("q10c_.*", "C", mean_df$question)
-
-mean_df$question <- factor(mean_df$question,
-                           levels = c("A", "B", "C"),
-                           labels = c("Question A", "Question B", "Question C"))
-
-compare_bar_graph <- ggplot(mean_df, aes(x = question, y = mean_response, fill = group)) +
+# Create the grouped bar graph
+compare_bar_graph <- ggplot(mean_df, aes(x = question_type, y = mean_response, fill = group)) +
   geom_bar(stat = "identity", position = position_dodge(width = 0.8), width = 0.7, color = "black", size = 0.2) +
-  labs(title = "Comparison of Mean Survey Responses",
+  labs(title = "Czechia: Comparison of Mean Survey Responses",
        subtitle = "Control vs. Experimental Conditions",
        x = "Question",
        y = "Mean Response (1 = Strongly Disagree, 4 = Strongly Agree)",

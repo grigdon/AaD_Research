@@ -127,3 +127,5 @@ ggsave(filename = "~/projects/AaD_Research/output/plots/poland/dist/compare_bar_
        width = 10, height = 7, device = "pdf")
 
 rm(list = ls())
+
+rm(list = ls())

@@ -84,24 +84,18 @@ treatment_long$group <- "Experimental"
 
 # Combine the two groups
 mean_df <- rbind(control_long, treatment_long)
-# Extract question letter (a, b, c) for cleaner labeling and convert to uppercase
-mean_df$question <- toupper(gsub("q10([a-z])_.*", "\\1", mean_df$question))
 
-#==================
-# Grouped Bar Graph
-#==================
+# Extract question number (1, 2, 3) which corresponds to questions A, B, C
+# For Hungary data, format is A10A_1_control_reversed, A10A_2_control_reversed, etc.
+mean_df$question_number <- as.numeric(substr(mean_df$question, 6, 6))
 
-# Change var names
+# Map question numbers to letters
+mean_df$question_type <- factor(mean_df$question_number,
+                                levels = c(1, 2, 3),
+                                labels = c("Question A", "Question B", "Question C"))
 
-mean_df$question <- gsub("q10a_.*", "A", mean_df$question)
-mean_df$question <- gsub("q10b_.*", "B", mean_df$question)
-mean_df$question <- gsub("q10c_.*", "C", mean_df$question)
-
-mean_df$question <- factor(mean_df$question,
-                           levels = c("A", "B", "C"),
-                           labels = c("Question A", "Question B", "Question C"))
-
-compare_bar_graph <- ggplot(mean_df, aes(x = question, y = mean_response, fill = group)) +
+# Create the grouped bar graph
+compare_bar_graph <- ggplot(mean_df, aes(x = question_type, y = mean_response, fill = group)) +
   geom_bar(stat = "identity", position = position_dodge(width = 0.8), width = 0.7, color = "black", size = 0.2) +
   labs(title = "Comparison of Mean Survey Responses",
        subtitle = "Control vs. Experimental Conditions",

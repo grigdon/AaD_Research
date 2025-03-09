@@ -6,32 +6,32 @@ library(haven)
 library(dplyr)
 
 # Read dataset from SPSS file
-data_slvk <- read_sav("~/projects/AaD_Research/datasets/scrubbed_datasets/slovakia_scrubbed.sav")
+data_pol <- read_sav("~/projects/AaD_Research/datasets/scrubbed_datasets/poland_scrubbed.sav")
 
-# Select only the needed columns
-questions <- c("id",
-               "q10a_control", "q10b_control", "q10c_control",
-               "q10a_experiment", "q10b_experiment", "q10c_experiment")
-data_slvk_questions <- data_slvk[questions]
+questions <- c("id", "Q10A_control_reversed", "Q10B_control_reversed", "Q10C_control_reversed", "Q10D_experiment_reversed", "Q10E_experiment_reversed", "Q10F_experiment_reversed")
+
+data_pol_questions <- data_pol[questions]
 
 # Define a function to calculate the proportion of responses equal to y
 prop <- function(x, y) {
   sum(x == y, na.rm = TRUE) / sum(!is.na(x))
 }
 
-# Calculate proportions for each response category (1 to 4) for questions 2 to 7
+# Calculate proportions for each response category (1 to 5) for questions 2 to 7
 h <- data.frame(
-  "Strongly Disagree" = apply(data_slvk_questions[2:7], 2, prop, y = 1),
-  "Disagree"          = apply(data_slvk_questions[2:7], 2, prop, y = 2),
-  "Agree"             = apply(data_slvk_questions[2:7], 2, prop, y = 3),
-  "Strongly Agree"    = apply(data_slvk_questions[2:7], 2, prop, y = 4)
+  "Strongly Disagree" = apply(data_pol_questions[2:7], 2, prop, y = 1),
+  "Disagree"          = apply(data_pol_questions[2:7], 2, prop, y = 2),
+  "Neutral"           = apply(data_pol_questions[2:7], 2, prop, y = 3),
+  "Agree"             = apply(data_pol_questions[2:7], 2, prop, y = 4),
+  "Strongly Agree"    = apply(data_pol_questions[2:7], 2, prop, y = 5)
 )
 # Add row names and set a specific order
 h$rowname <- rownames(h)
+
 h$rowname <- factor(h$rowname, 
-                    levels = c("q10a_control", "q10a_experiment",
-                               "q10b_control", "q10b_experiment",
-                               "q10c_control", "q10c_experiment"),
+                    levels = c("Q10A_control_reversed", "Q10D_experiment_reversed",
+                               "Q10B_control_reversed", "Q10E_experiment_reversed",
+                               "Q10C_control_reversed", "Q10F_experiment_reversed"),
                     labels = c("Control A", "Experimental A",
                                "Control B", "Experimental B",
                                "Control C", "Experimental C"))
@@ -44,7 +44,7 @@ mh <- melt(h, id.vars = "rowname")
 stacked_plot <- ggplot(mh, aes(x = rowname, y = value, fill = variable)) +
   geom_bar(stat = "identity", position = "stack", color = "black", size = 0.2) +
   coord_flip() +
-  labs(title = "Survey Response Distribution",
+  labs(title = "Poland: Survey Response Distribution",
        subtitle = "Control vs. Experimental Conditions",
        x = "Survey Question",
        y = "Proportion of Responses",
@@ -60,20 +60,20 @@ stacked_plot <- ggplot(mh, aes(x = rowname, y = value, fill = variable)) +
     panel.grid.minor = element_blank()
   )
 
-if(!dir.exists("~/projects/AaD_Research/output/plots/slovakia/dist"))
+if(!dir.exists("~/projects/AaD_Research/output/plots/poland/dist"))
   stop("Directory not found!")
 
-ggsave(filename = "~/projects/AaD_Research/output/plots/slovakia/dist/stacked_bar_graph.pdf", 
+ggsave(filename = "~/projects/AaD_Research/output/plots/poland/dist/stacked_bar_graph.pdf", 
        plot = stacked_plot,
        width = 10, height = 7, device = "pdf")
 
 #===============================
 # Calculate Means for Each Group
 #===============================
-control_means <- data_slvk_questions %>%
+control_means <- data_pol_questions %>%
   select(contains("control")) %>%
   summarise(across(everything(), ~ mean(.x, na.rm = TRUE)))
-treatment_means <- data_slvk_questions %>%
+treatment_means <- data_pol_questions %>%
   select(contains("experiment")) %>%
   summarise(across(everything(), ~ mean(.x, na.rm = TRUE)))
 
@@ -85,29 +85,30 @@ treatment_long$group <- "Experimental"
 
 # Combine the two groups
 mean_df <- rbind(control_long, treatment_long)
-# Extract question letter (a, b, c) for cleaner labeling and convert to uppercase
-mean_df$question <- toupper(gsub("q10([a-z])_.*", "\\1", mean_df$question))
 
-#==================
-# Grouped Bar Graph
-#==================
+# Map the question names to appropriate types based on the pattern
+mean_df$question_type <- case_when(
+  grepl("Q10A_control", mean_df$question) ~ "a",
+  grepl("Q10B_control", mean_df$question) ~ "b",
+  grepl("Q10C_control", mean_df$question) ~ "c",
+  grepl("Q10D_experiment", mean_df$question) ~ "a",
+  grepl("Q10E_experiment", mean_df$question) ~ "b",
+  grepl("Q10F_experiment", mean_df$question) ~ "c",
+  TRUE ~ NA_character_
+)
 
-# Change var names
+# Create factor for proper ordering and labeling
+mean_df$question_type <- factor(mean_df$question_type,
+                                levels = c("a", "b", "c"),
+                                labels = c("Question A", "Question B", "Question C"))
 
-mean_df$question <- gsub("q10a_.*", "A", mean_df$question)
-mean_df$question <- gsub("q10b_.*", "B", mean_df$question)
-mean_df$question <- gsub("q10c_.*", "C", mean_df$question)
-
-mean_df$question <- factor(mean_df$question,
-                           levels = c("A", "B", "C"),
-                           labels = c("Question A", "Question B", "Question C"))
-
-compare_bar_graph <- ggplot(mean_df, aes(x = question, y = mean_response, fill = group)) +
+# Create the grouped bar graph
+compare_bar_graph <- ggplot(mean_df, aes(x = question_type, y = mean_response, fill = group)) +
   geom_bar(stat = "identity", position = position_dodge(width = 0.8), width = 0.7, color = "black", size = 0.2) +
-  labs(title = "Comparison of Mean Survey Responses",
+  labs(title = "Poland: Comparison of Mean Survey Responses",
        subtitle = "Control vs. Experimental Conditions",
        x = "Question",
-       y = "Mean Response (1 = Strongly Disagree, 4 = Strongly Agree)",
+       y = "Mean Response (1 = Strongly Disagree, 5 = Strongly Agree)",
        fill = "Group") +
   scale_fill_brewer(palette = "Set2") +
   theme_minimal(base_size = 14) +
@@ -120,10 +121,10 @@ compare_bar_graph <- ggplot(mean_df, aes(x = question, y = mean_response, fill =
     panel.grid.minor = element_blank()
   )
 
-if(!dir.exists("~/projects/AaD_Research/output/plots/slovakia/dist"))
+if(!dir.exists("~/projects/AaD_Research/output/plots/poland/dist"))
   stop("Directory not found!")
 
-ggsave(filename = "~/projects/AaD_Research/output/plots/slovakia/dist/compare_bar_graph.pdf", 
+ggsave(filename = "~/projects/AaD_Research/output/plots/poland/dist/compare_bar_graph.pdf", 
        plot = compare_bar_graph,
        width = 10, height = 7, device = "pdf")
 
