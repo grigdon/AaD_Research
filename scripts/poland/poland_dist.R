@@ -23,7 +23,8 @@ h <- data.frame(
   "Disagree"          = apply(data_pol_questions[2:7], 2, prop, y = 2),
   "Neutral"           = apply(data_pol_questions[2:7], 2, prop, y = 3),
   "Agree"             = apply(data_pol_questions[2:7], 2, prop, y = 4),
-  "Strongly Agree"    = apply(data_pol_questions[2:7], 2, prop, y = 5)
+  "Strongly Agree"    = apply(data_pol_questions[2:7], 2, prop, y = 5),
+  check.names = FALSE
 )
 # Add row names and set a specific order
 h$rowname <- rownames(h)
@@ -67,9 +68,10 @@ ggsave(filename = "~/projects/AaD_Research/output/plots/poland/dist/poland_stack
        plot = stacked_plot,
        width = 10, height = 7, device = "pdf")
 
-#===============================
-# Calculate Means for Each Group
-#===============================
+#=============================
+# Compare Means for each Group
+#=============================
+
 control_means <- data_pol_questions %>%
   select(contains("control")) %>%
   summarise(across(everything(), ~ mean(.x, na.rm = TRUE)))
@@ -85,28 +87,29 @@ treatment_long$group <- "Experimental"
 
 # Combine the two groups
 mean_df <- rbind(control_long, treatment_long)
-# Extract question letter (a, b, c) for cleaner labeling and convert to uppercase
-mean_df$question <- toupper(gsub("q10([a-z])_.*", "\\1", mean_df$question))
 
-#==================
-# Grouped Bar Graph
-#==================
+# Map the question names to appropriate types based on the pattern
+mean_df$question_type <- case_when(
+  grepl("Q10A_control_reversed", mean_df$question) ~ "a",
+  grepl("Q10B_control_reversed", mean_df$question) ~ "b",
+  grepl("Q10C_control_reversed", mean_df$question) ~ "c",
+  grepl("Q10D_experiment_reversed", mean_df$question) ~ "a",
+  grepl("Q10E_experiment_reversed", mean_df$question) ~ "b",
+  grepl("Q10F_experiment_reversed", mean_df$question) ~ "c",
+)
 
-# Change var names
+# Create factor for proper ordering and labeling
+mean_df$question_type <- factor(mean_df$question_type,
+                                levels = c("a", "b", "c"),
+                                labels = c("Question A", "Question B", "Question C"))
 
-mean_df$question <- gsub("Q10A([A-C])_.*", "\\1", mean_df$question)
-mean_df$question <- gsub("Q10B([A-C])_.*", "\\1", mean_df$question)
-
-mean_df$question <- factor(mean_df$question,
-                           levels = c("A", "B", "C"),
-                           labels = c("Question A", "Question B", "Question C"))
-
-compare_bar_graph <- ggplot(mean_df, aes(x = question, y = mean_response, fill = group)) +
+# Create the grouped bar graph
+compare_bar_graph <- ggplot(mean_df, aes(x = question_type, y = mean_response, fill = group)) +
   geom_bar(stat = "identity", position = position_dodge(width = 0.8), width = 0.7, color = "black", size = 0.2) +
-  labs(title = "Comparison of Mean Survey Responses",
+  labs(title = "Poland: Comparison of Mean Survey Responses",
        subtitle = "Control vs. Experimental Conditions",
        x = "Question",
-       y = "Mean Response (1 = Strongly Disagree, 4 = Strongly Agree)",
+       y = "Mean Response (1 = Strongly Disagree, 5 = Strongly Agree)",
        fill = "Group") +
   scale_fill_brewer(palette = "Set2") +
   theme_minimal(base_size = 14) +
