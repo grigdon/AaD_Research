@@ -63,7 +63,7 @@ stacked_plot <- ggplot(mh, aes(x = rowname, y = value, fill = variable)) +
 if(!dir.exists("~/projects/AaD_Research/output/plots/poland/dist"))
   stop("Directory not found!")
 
-ggsave(filename = "~/projects/AaD_Research/output/plots/poland/dist/stacked_bar_graph.pdf", 
+ggsave(filename = "~/projects/AaD_Research/output/plots/poland/dist/poland_stacked_bar_graph.pdf", 
        plot = stacked_plot,
        width = 10, height = 7, device = "pdf")
 
@@ -122,10 +122,10 @@ compare_bar_graph <- ggplot(mean_df, aes(x = question, y = mean_response, fill =
 if(!dir.exists("~/projects/AaD_Research/output/plots/poland/dist"))
   stop("Directory not found!")
 
-ggsave(filename = "~/projects/AaD_Research/output/plots/poland/dist/compare_bar_graph.pdf", 
+ggsave(filename = "~/projects/AaD_Research/output/plots/poland/dist/poland_compare_bar_graph.pdf", 
        plot = compare_bar_graph,
        width = 10, height = 7, device = "pdf")
 
-rm(list = ls())
+# clears env variables
 
 rm(list = ls())

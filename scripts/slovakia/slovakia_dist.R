@@ -128,4 +128,6 @@ ggsave(filename = "~/projects/AaD_Research/output/plots/slovakia/dist/slovakia_c
        plot = compare_bar_graph,
        width = 10, height = 7, device = "pdf")
 
+# clears env variables
+
 rm(list = ls())
