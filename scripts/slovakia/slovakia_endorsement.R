@@ -22,8 +22,8 @@ library(Cairo)
 SKdata <- read_sav("~/projects/AaD_Research/datasets/scrubbed_datasets/slovakia_scrubbed.sav")
 
 # Define questions for the endorsement experiment
-questions <- c("id", "q10a_control", "q10b_control", "q10c_control", 
-               "q10a_experiment", "q10b_experiment", "q10c_experiment")
+questions <- c("id", "q10a_control_reversed", "q10b_control_reversed", "q10c_control_reversed", 
+               "q10a_experiment_reversed", "q10b_experiment_reversed", "q10c_experiment_reversed")
 
 # Select relevant columns for endorsement analysis
 data_slvk_questions <- SKdata[questions]
@@ -47,9 +47,9 @@ data_slvk_vars <- mutate(data_slvk_vars, across(everything(), ~as.numeric(.)))
 data_slvk <- left_join(data_slvk_questions, data_slvk_vars, by = "id")
 
 # Create named list for response questions
-Y <- list(Q1 = c("q10a_control", "q10a_experiment"), 
-          Q2 = c("q10b_control", "q10b_experiment"), 
-          Q3 = c("q10c_control", "q10c_experiment"))
+Y <- list(Q1 = c("q10a_control_reversed", "q10a_experiment_reversed"), 
+          Q2 = c("q10b_control_reversed", "q10b_experiment_reversed"), 
+          Q3 = c("q10c_control_reversed", "q10c_experiment_reversed"))
 
 #====================================================
 # 2. Creating the endorse object
