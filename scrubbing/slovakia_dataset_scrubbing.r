@@ -16,8 +16,8 @@ library(readxl)
 SKdata <- read_dta("~/projects/AaD_Research/datasets/raw_datasets/slovakia_raw_dataset.dta")
 
 # Select endorsement experiment questions and reverse code responses
-questions <- c("id", "q10a_control", "q10b_control", "q10c_control", 
-               "q10a_experiment", "q10b_experiment", "q10c_experiment")
+questions <- c("id", "q10a_control_reversed", "q10b_control_reversed", "q10c_control_reversed", 
+               "q10a_experiment_reversed", "q10b_experiment_reversed", "q10c_experiment_reversed")
 
 data_slvk_questions <- SKdata[questions]
 #-----------------------------------
