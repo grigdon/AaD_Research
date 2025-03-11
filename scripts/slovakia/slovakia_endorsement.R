@@ -28,14 +28,13 @@ questions <- c("id", "q10a_control_reversed", "q10b_control_reversed", "q10c_con
 # Select relevant columns for endorsement analysis
 data_slvk_questions <- SKdata[questions]
 
-# Define variables to keep
-vars <- c("id", "male", "age", "educ", "capital", "ideology", "income", "DemPolGrievance", "PolicyPolGrievance",
-      "DemonstrateTrad", "DemonstrateNational", "PetitionSameSex", "VoteFarRight", "VotePrevFarRight",
-      "ideologyLC", "SocialMediaUse", "InternetUse", "SlovakNationality", "FAMincome", "Nationalist",
-      "EconGrievenceRetro", "EconGrievenceProspInd", "EconGrievenceProspAgg", "EconGrievenceProspMostFams",
-      "NatPride", "RomaPartner", "RomaNeighbor", "GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner", "Ukraine",
-      "ChristianSchool", "MaleChauvinism", "LawOrder", "ChurchPolitics", "Abortion", "TradMarriage", "SexbMarriage",
-      "ChildHome", "MaleJobs", "NativeJobs", "NativeRights", "Religiosity")
+# Define vars to keep 
+
+vars <- c("id", "age", "male", "educ", "capital", "ideology", "income", "DemPolGrievance", "PolicyPolGrievance",
+          "EconGrievenceRetro", "EconGrievenceProspInd", "EconGrievenceProspAgg", "NativeRights", "NativeJobs",
+          "DemonstrateNational", "GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner", "Ukraine", "VoteFarRight",
+          "FAMincome", "Religiosity"  
+)
 
 # Subset and recode variables
 data_slvk_vars <- SKdata[vars]
@@ -71,7 +70,7 @@ endorse_object <- endorse(Y = Y,
                                                      DemonstrateNational +
                                                      GayNeighbor+ GayFamily + ForNeighbor +
                                                      ForPartner + Ukraine + VoteFarRight + 
-                                                     FAMincome 
+                                                     FAMincome + Religiosity
                                                   ),
                           omega2.out = TRUE,
                           hierarchical = FALSE
@@ -114,17 +113,17 @@ ggsave("~/projects/AaD_Research/output/metro/slovakia_acceptance_ratios.pdf",
 
 # Create the dataframe using posterior samples
 delta_matrix_values <- data.frame(
-  mean = apply(endorse_object$delta[, 2:22], 2, mean),
-  lower = apply(endorse_object$delta[, 2:22], 2, quantile, 0.025),
-  upper = apply(endorse_object$delta[, 2:22], 2, quantile, 0.975)
+  mean = apply(endorse_object$delta[, 2:23], 2, mean),
+  lower = apply(endorse_object$delta[, 2:23], 2, quantile, 0.025),
+  upper = apply(endorse_object$delta[, 2:23], 2, quantile, 0.975)
 )
 
 # Add variable names and categories
-delta_matrix_values$variables <- colnames(endorse_object$delta)[2:22]
+delta_matrix_values$variables <- colnames(endorse_object$delta)[2:23]
 delta_matrix_values$category <- NA
 
 # Define categories
-ses_demographics <- c("age", "male", "educ", "capital", "ideology", "income", "FAMincome")
+ses_demographics <- c("age", "male", "educ", "capital", "ideology", "income", "FAMincome", "Religiosity")
 political_economic_grievances <- c("DemPolGrievance", "PolicyPolGrievance", "EconGrievenceRetro", "EconGrievenceProspInd", "EconGrievenceProspAgg")
 nationalism <- c("NativeRights", "NativeJobs", "DemonstrateNational", "VoteFarRight")
 boundary_maintenance <- c("GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner", "Ukraine")
@@ -153,32 +152,33 @@ category_order <- c(
   "Nationalism", 
   "Boundary Maintenance & Prejudice"
 )
+
 delta_matrix_values$category <- factor(delta_matrix_values$category, levels = category_order)
 
 # Define custom labels for variables
 custom_labels <- c(
-  "age" = "Age",
-  "male" = "Male",
-  "educ" = "Education",
-  "capital" = "Capital",
-  "ideology" = "Political Ideology",
-  "income" = "Personal Income",
-  "FAMincome" = "Family Income",
-  "DemPolGrievance" = "Political Grievance (Democracy)",
-  "PolicyPolGrievance" = "Political Grievance (Policy",
-  "EconGrievenceRetro" = "Economic Grievance (Retro)",
-  "EconGrievenceProspInd" = "Economic Grievance (Prospective-Ind)",
-  "EconGrievenceProspAgg" = "Economic Grievance (Prospective-Agg)",
-  "NativeRights" = "Native Rights",
-  "NativeJobs" = "Native Jobs",
-  "DemonstrateNational" = "Demonstrated for National Values",
-  "VoteFarRight" = "Far Right Voter",
-  "DemonstrateTrad" = "Demonstrate Traditionalism",
-  "GayNeighbor" = "Anti-Gay Neighbor",
-  "GayFamily" = "Anti-Gay Family",
-  "ForNeighbor" = "Anti-Foreigner Neighbor",
-  "ForPartner" = "Anti-Foreigner Neighbor",
-  "Ukraine" = "Anti-Ukrainian Refugee"
+  "age" = "Age", 
+  "male" = "Male", 
+  "educ" = "Education", 
+  "capital" = "Capital", 
+  "ideology" = "Political Ideology", 
+  "income" = "Personal Income", 
+  "FAMincome" = "Family Income", 
+  "DemPolGrievance" = "Political Grievance (Democracy)", 
+  "PolicyPolGrievance" = "Political Grievance (Policy", 
+  "EconGrievenceRetro" = "Economic Grievance (Retro)", 
+  "EconGrievenceProspInd" = "Economic Grievance (Prospective-Ind)", 
+  "EconGrievenceProspAgg" = "Economic Grievance (Prospective-Agg)", 
+  "NativeRights" = "Native Rights", 
+  "NativeJobs" = "Native Jobs", 
+  "DemonstrateNational" = "Demonstrated for National Values", 
+  "VoteFarRight" = "Far Right Voter", 
+  "GayNeighbor" = "Anti-Gay Neighbor", 
+  "GayFamily" = "Anti-Gay Family", 
+  "ForNeighbor" = "Anti-Foreigner Neighbor", 
+  "ForPartner" = "Anti-Foreigner Partner", 
+  "Ukraine" = "Anti-Ukrainian Refugee", 
+  "Religiosity" = "Religiosity" 
 )
 
 # Create the plot
