@@ -60,9 +60,10 @@ endorse_object <- endorse(Y = Y,
                           data = data_hu,
                           identical.lambda = FALSE,
                           covariates = TRUE,
+                          prop = 0.008,
                           formula.indiv = formula( ~ Male + Age + Education + Capital + IdeologyLR + FamIncome + DemPolGrievance + PolicyPolGrievance +
-                                                  EconGrievanceRetro + EconGrievanceProspInd + EconGrievanceProspAgg + EconGrievanceProspMostFams +
-                                                  GayNeighbor + GayFamily + GayLesRights + ForNeighbor + ForPartner + Ukraine +
+                                                  EconGrievanceRetro + EconGrievanceProspInd + EconGrievanceProspAgg +
+                                                  GayNeighbor + GayFamily + ForNeighbor + ForPartner + Ukraine +
                                                   NativeJobs + NativeRights + DemonstrateNational + Religiosity + VoteFarRight
                           ),
                           omega2.out = TRUE,
@@ -106,20 +107,20 @@ ggsave("~/projects/AaD_Research/output/metro/hungary_acceptance_ratios.pdf",
 
 # Create the dataframe using posterior samples
 delta_matrix_values <- data.frame(
-  mean = apply(endorse_object$delta[, 2:24], 2, mean),
-  lower = apply(endorse_object$delta[, 2:24], 2, quantile, 0.025),
-  upper = apply(endorse_object$delta[, 2:24], 2, quantile, 0.975)
+  mean = apply(endorse_object$delta[, 2:22], 2, mean),
+  lower = apply(endorse_object$delta[, 2:22], 2, quantile, 0.025),
+  upper = apply(endorse_object$delta[, 2:22], 2, quantile, 0.975)
 )
 
 # Add variable names and categories
-delta_matrix_values$variables <- colnames(endorse_object$delta)[2:24]
+delta_matrix_values$variables <- colnames(endorse_object$delta)[2:22]
 delta_matrix_values$category <- NA
 
 # Define categories
 ses_demographics <- c("Age", "Male", "Education", "Capital", "IdeologyLR", "Income", "FamIncome", "Religiosity")
 political_economic_grievances <- c("DemPolGrievance", "PolicyPolGrievance", "EconGrievanceRetro", "EconGrievanceProspInd",
-                                   "EconGrievanceProspAgg", "EconGrievanceProspMostFams",  "DemonstrateNational")
-nationalism <- c( "NativeRights", "NativeJobs", "VoteFarRight")
+                                   "EconGrievanceProspAgg", "EconGrievanceProspMostFams")
+nationalism <- c( "NativeRights", "NativeJobs", "VoteFarRight", "DemonstrateNational")
 boundary_maintenance <- c("GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner", "Ukraine", "GayLesRights")
 
 # Assign categories
@@ -158,11 +159,10 @@ custom_labels <- c(
   "Income" = "Personal Income", 
   "FamIncome" = "Family Income", 
   "DemPolGrievance" = "Political Grievance (Democracy)", 
-  "PolicyPolGrievance" = "Policy Grievance", 
+  "PolicyPolGrievance" = "Political Grievance (Policy)", 
   "EconGrievanceRetro" = "Economic Grievance (Retro)", 
   "EconGrievanceProspInd" = "Economic Grievance (Prospective-Ind)", 
   "EconGrievanceProspAgg" = "Economic Grievance (Prospective-Agg)", 
-  "EconGrievanceProspMostFams" = "Economic Grievance (ProspMostFams)", 
   "DemonstrateNational" = "Demontrates Nationalism", 
   "NativeRights" = "Native Rights", 
   "NativeJobs" = "Native Jobs", 
@@ -171,9 +171,8 @@ custom_labels <- c(
   "GayNeighbor" = "Anti-Gay Neighbor", 
   "GayFamily" = "Anti-Gay Family", 
   "ForNeighbor" = "Anti-Foreigner Neighbor", 
-  "ForPartner" = "Anti-Foreigner Neighbor", 
-  "Ukraine" = "Anti-Ukrainian Refugee",
-  "GayLesRights" = "Gay Lesbian Rights" 
+  "ForPartner" = "Anti-Foreigner Partner", 
+  "Ukraine" = "Anti-Ukrainian Refugee"
 )
 
 # Create the plot
