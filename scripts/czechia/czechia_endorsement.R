@@ -30,9 +30,8 @@ data_cz_questions <- CZData[questions]
 
 # Define variables to keep
 vars <- c("id", "Male", "Age", "Education", "Capital", "IdeologyLR", "Income", "FamIncome", "DemPolGrievance", "PolicyPolGrievance",
-          "EconGrievanceRetro", "EconGrievanceProspInd", "EconGrievanceProspAgg", "EconGrievanceProspMostFams",
-          "GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner", "Ukraine",
-          "NativeJobs", "NativeRights", "Religiosity", "VoteFarRight", "DemonstrateNational")
+          "EconGrievanceRetro", "EconGrievanceProspInd", "EconGrievanceProspAgg", "GayNeighbor", "GayFamily", "ForNeighbor",
+          "ForPartner", "Ukraine", "NativeJobs", "NativeRights", "Religiosity", "VoteFarRight", "DemonstrateNational")
 
 # Subset and recode variables
 data_cz_vars <- CZData[vars]
@@ -52,7 +51,7 @@ Y <- list(Q1 = c("Q10AA_control_reversed", "Q10BA_experiment_reversed"),
 # 2. Creating the endorse object
 #====================================================
 
-# Creating an endorse object, excluding all covariates that are in the set { traditionalism }
+# Creating an endorse object
 
 endorse_object <- endorse(Y = Y, 
                           data = data_cz,
@@ -61,9 +60,9 @@ endorse_object <- endorse(Y = Y,
                           prop = 0.010,
                           formula.indiv = formula( ~ Male + Age + Education + Capital + IdeologyLR + Income + FamIncome + DemPolGrievance +
                                                    PolicyPolGrievance + EconGrievanceRetro + EconGrievanceProspInd + EconGrievanceProspAgg +
-                                                   EconGrievanceProspMostFams + GayNeighbor + GayFamily + ForNeighbor + ForPartner + Ukraine +
-                                                   NativeJobs + NativeRights + Religiosity + VoteFarRight + DemonstrateNational
-                                                  ),
+                                                   GayNeighbor + GayFamily + ForNeighbor + ForPartner + Ukraine + NativeJobs + NativeRights + 
+                                                   Religiosity + DemonstrateNational + VoteFarRight
+                                                   ),
                           omega2.out = TRUE,
                           hierarchical = FALSE
 )
@@ -99,24 +98,23 @@ ggsave("~/projects/AaD_Research/output/metro/czechia_acceptance_ratios.pdf",
        acceptance_plot, width = 8, height = 6)
 
 #====================================================
-# 3. Plotting coefficient plots from the delta matrix 
+# 3. Plotting coefficient plots from the delta matrix
 #====================================================
 
 # Create the dataframe using posterior samples
 delta_matrix_values <- data.frame(
-  mean = apply(endorse_object$delta[, 2:24], 2, mean),
-  lower = apply(endorse_object$delta[, 2:24], 2, quantile, 0.025),
-  upper = apply(endorse_object$delta[, 2:24], 2, quantile, 0.975)
+  mean = apply(endorse_object$delta[, 2:23], 2, mean),
+  lower = apply(endorse_object$delta[, 2:23], 2, quantile, 0.025),
+  upper = apply(endorse_object$delta[, 2:23], 2, quantile, 0.975)
 )
 
 # Add variable names and categories
-delta_matrix_values$variables <- colnames(endorse_object$delta)[2:24]
+delta_matrix_values$variables <- colnames(endorse_object$delta)[2:23]
 delta_matrix_values$category <- NA
 
 # Define categories
 ses_demographics <- c("Age", "Male", "Education", "Capital", "IdeologyLR", "Income", "FamIncome", "Religiosity")
-political_economic_grievances <- c("DemPolGrievance", "PolicyPolGrievance", "EconGrievanceRetro", "EconGrievanceProspInd",
-                                   "EconGrievanceProspAgg", "EconGrievanceProspMostFams")
+political_economic_grievances <- c("DemPolGrievance", "PolicyPolGrievance", "EconGrievanceRetro", "EconGrievanceProspInd", "EconGrievanceProspAgg")
 nationalism <- c( "NativeRights", "NativeJobs", "VoteFarRight", "DemonstrateNational")
 boundary_maintenance <- c("GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner", "Ukraine")
 
@@ -160,7 +158,6 @@ custom_labels <- c(
   "EconGrievanceRetro" = "Economic Grievance (Retro)",
   "EconGrievanceProspInd" = "Economic Grievance (Prospective-Ind)",
   "EconGrievanceProspAgg" = "Economic Grievance (Prospective-Agg)",
-  "EconGrievanceProspMostFams" = "Economic Grievance (ProspMostFams)",
   "NativeRights" = "Native Rights",
   "NativeJobs" = "Native Jobs",
   "VoteFarRight" = "Far Right Voter",
@@ -168,10 +165,10 @@ custom_labels <- c(
   "GayNeighbor" = "Anti-Gay Neighbor",
   "GayFamily" = "Anti-Gay Family",
   "ForNeighbor" = "Anti-Foreigner Neighbor",
-  "ForPartner" = "Anti-Foreigner Neighbor",
-  "Ukraine" = "Anti-Ukrainian Refugee"
+  "ForPartner" = "Anti-Foreigner Partner",
+  "Ukraine" = "Anti-Ukrainian Refugee",
+  "DemonstrateNational" = "Demonstrated for National Values"
 )
-
 
 # Create the plot
 plot <- ggplot(delta_matrix_values, aes(x = variables, y = mean)) +
