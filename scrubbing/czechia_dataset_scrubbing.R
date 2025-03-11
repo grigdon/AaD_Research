@@ -35,13 +35,13 @@ data_cz_vars <- CZData %>%
   select(CD, Male, Age, Education, Capital, IdeologyLR, Income, FamIncome, DemPolGrievance, PolicyPolGrievance,
          EconGrievanceRetro, EconGrievanceProspInd, EconGrievanceProspAgg, EconGrievanceProspMostFams,
          GayNeighbor, GayFamily, ForNeighbor, ForPartner, Ukraine,
-         NativeJobs, NativeRights, Religiosity, VoteFarRight
+         NativeJobs, NativeRights, Religiosity, VoteFarRight, DemonstrateNational
   )
 
 vars <- c("Male", "Age", "Education", "Capital", "IdeologyLR", "Income", "FamIncome", "DemPolGrievance", "PolicyPolGrievance",
           "EconGrievanceRetro", "EconGrievanceProspInd", "EconGrievanceProspAgg", "EconGrievanceProspMostFams",
           "GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner", "Ukraine",
-          "NativeJobs", "NativeRights", "Religiosity", "VoteFarRight")
+          "NativeJobs", "NativeRights", "Religiosity", "VoteFarRight", "DemonstrateNational")
 
 # Subset and recode variables
 data_cz_vars <- as.data.frame(data_cz_vars[vars])
