@@ -36,6 +36,8 @@ vars <- c("id", "age", "male", "educ", "capital", "ideology", "income", "DemPolG
           "FAMincome", "Religiosity"  
 )
 
+print(as.data.frame(colnames(endorse_object$delta)))
+
 # Subset and recode variables
 data_slvk_vars <- SKdata[vars]
 
