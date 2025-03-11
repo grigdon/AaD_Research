@@ -61,17 +61,17 @@ endorse_object <- endorse(Y = Y,
                           data = data_slvk,
                           identical.lambda = FALSE,
                           covariates = TRUE,
+                          prop = 0.010,
                           formula.indiv = formula( ~ age + male + educ + 
                                                      capital + ideology + income + 
                                                      DemPolGrievance + PolicyPolGrievance + 
                                                      EconGrievenceRetro + EconGrievenceProspInd + 
                                                      EconGrievenceProspAgg + 
-                                                     NativeRights + NativeJobs + NatPride +
-                                                     DemonstrateNational + SlovakNationality +
-                                                     GayNeighbor + LawOrder + MaleChauvinism + ChristianSchool +
-                                                     GayFamily + ForNeighbor + DemonstrateTrad +
-                                                     ForPartner + Ukraine + VoteFarRight + Nationalist + 
-                                                     FAMincome + Religiosity
+                                                     NativeRights + NativeJobs +
+                                                     DemonstrateNational +
+                                                     GayNeighbor+ GayFamily + ForNeighbor +
+                                                     ForPartner + Ukraine + VoteFarRight + 
+                                                     FAMincome 
                                                   ),
                           omega2.out = TRUE,
                           hierarchical = FALSE
@@ -114,22 +114,19 @@ ggsave("~/projects/AaD_Research/output/metro/slovakia_acceptance_ratios.pdf",
 
 # Create the dataframe using posterior samples
 delta_matrix_values <- data.frame(
-  mean = apply(endorse_object$delta[, 2:30], 2, mean),
-  lower = apply(endorse_object$delta[, 2:30], 2, quantile, 0.025),
-  upper = apply(endorse_object$delta[, 2:30], 2, quantile, 0.975)
+  mean = apply(endorse_object$delta[, 2:22], 2, mean),
+  lower = apply(endorse_object$delta[, 2:22], 2, quantile, 0.025),
+  upper = apply(endorse_object$delta[, 2:22], 2, quantile, 0.975)
 )
 
 # Add variable names and categories
-delta_matrix_values$variables <- colnames(endorse_object$delta)[2:30]
+delta_matrix_values$variables <- colnames(endorse_object$delta)[2:22]
 delta_matrix_values$category <- NA
 
 # Define categories
 ses_demographics <- c("age", "male", "educ", "capital", "ideology", "income", "FAMincome")
-political_economic_grievances <- c("DemPolGrievance", "PolicyPolGrievance", 
-                                   "EconGrievenceRetro", "EconGrievenceProspInd", "EconGrievenceProspAgg")
-nationalism <- c("NatPride", "NativeRights", "NativeJobs", "DemonstrateNational", 
-                 "SlovakNationality", "Nationalist", "VoteFarRight")
-traditionalism <- c("LawOrder", "MaleChauvinism", "ChristianSchool", "DemonstrateTrad", "Religiosity")
+political_economic_grievances <- c("DemPolGrievance", "PolicyPolGrievance", "EconGrievenceRetro", "EconGrievenceProspInd", "EconGrievenceProspAgg")
+nationalism <- c("NativeRights", "NativeJobs", "DemonstrateNational", "VoteFarRight")
 boundary_maintenance <- c("GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner", "Ukraine")
 
 # Assign categories
@@ -139,7 +136,6 @@ delta_matrix_values <- delta_matrix_values %>%
       variables %in% ses_demographics ~ "SES Demographics",
       variables %in% political_economic_grievances ~ "Political & Economic Grievances",
       variables %in% nationalism ~ "Nationalism",
-      variables %in% traditionalism ~ "Traditionalism",
       variables %in% boundary_maintenance ~ "Boundary Maintenance & Prejudice"
     )
   )
@@ -155,7 +151,6 @@ category_order <- c(
   "SES Demographics", 
   "Political & Economic Grievances", 
   "Nationalism", 
-  "Traditionalism", 
   "Boundary Maintenance & Prejudice"
 )
 delta_matrix_values$category <- factor(delta_matrix_values$category, levels = category_order)
@@ -170,29 +165,21 @@ custom_labels <- c(
   "income" = "Personal Income",
   "FAMincome" = "Family Income",
   "DemPolGrievance" = "Political Grievance (Democracy)",
-  "PolicyPolGrievance" = "Policy Grievance",
+  "PolicyPolGrievance" = "Political Grievance (Policy",
   "EconGrievenceRetro" = "Economic Grievance (Retro)",
   "EconGrievenceProspInd" = "Economic Grievance (Prospective-Ind)",
   "EconGrievenceProspAgg" = "Economic Grievance (Prospective-Agg)",
-  "NatPride" = "National Pride",
   "NativeRights" = "Native Rights",
   "NativeJobs" = "Native Jobs",
   "DemonstrateNational" = "Demonstrated for National Values",
-  "SlovakNationality" = "Slovak Nationality",
-  "Nationalist" = "Prefers Nationalist Politics",
   "VoteFarRight" = "Far Right Voter",
-  "LawOrder" = "Law & Order Support",
-  "MaleChauvinism" = "Male Chauvinism Support",
-  "ChristianSchool" = "Christian Schools Support",
   "DemonstrateTrad" = "Demonstrate Traditionalism",
-  "Religiosity" = "Religiosity",
   "GayNeighbor" = "Anti-Gay Neighbor",
   "GayFamily" = "Anti-Gay Family",
   "ForNeighbor" = "Anti-Foreigner Neighbor",
   "ForPartner" = "Anti-Foreigner Neighbor",
   "Ukraine" = "Anti-Ukrainian Refugee"
 )
-
 
 # Create the plot
 plot <- ggplot(delta_matrix_values, aes(x = variables, y = mean)) +
@@ -232,10 +219,9 @@ ggsave("~/projects/AaD_Research/output/plots/slovakia/coef/slovakia_coef_plot.pd
 covariates_of_interest <- c(
   "age", "male", "educ", "capital", "ideology", "income", "FAMincome",
   "DemPolGrievance", "PolicyPolGrievance", "EconGrievenceRetro",
-  "EconGrievenceProspInd", "EconGrievenceProspAgg", "NatPride", "NativeRights",
-  "NativeJobs", "DemonstrateNational", "SlovakNationality", "Nationalist",
-  "VoteFarRight", "LawOrder", "MaleChauvinism", "ChristianSchool", "DemonstrateTrad",
-  "Religiosity", "GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner", "Ukraine"
+  "EconGrievenceProspInd", "EconGrievenceProspAgg", "NativeRights",
+  "NativeJobs", "DemonstrateNational",
+  "VoteFarRight", "GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner", "Ukraine"
 )
 
 # Variable labels for plotting, i.e., the covariate "age" would be displayed as "Age Group"
@@ -265,9 +251,7 @@ variable_labels <- c(
 binary_covariates <- list(
   male = list(values = c(1, 2), labels = c("Female", "Male")),
   capital = list(values = c(1, 2), labels = c("Rural", "Capital")),
-  VoteFarRight = list(values = c(0, 1), labels = c("Other", "Far-Right")),
-  Nationalist = list(values = c(0, 1), labels = c("Other", "Nationalist")),
-  SlovakNationality = list(values = c(0, 1), labels = c("Other", "Slovak"))
+  VoteFarRight = list(values = c(0, 1), labels = c("Other", "Far-Right"))
 )
 
 # Setting labels for ordinals variables, i.e., {1, 2, 3, 4}
@@ -526,7 +510,7 @@ for(i in seq_along(covariates_of_interest)) {
     
     # Save plot immediately
     ggsave(
-      filename = file.path(output_dir, paste0(cov, "_effect.pdf")),
+      filename = file.path(output_dir, paste0(cov, "_effect_slovakia.pdf")),
       plot = p,
       width = 8,
       height = 6,
@@ -554,4 +538,4 @@ message("Output location:       ", normalizePath(output_dir))
 message("===================================")
 
 # clears environment variables
-rm(list = ls())
+# rm(list = ls())
