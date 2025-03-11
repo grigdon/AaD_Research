@@ -197,7 +197,7 @@ plot <- ggplot(delta_matrix_values, aes(x = variables, y = mean)) +
   labs(x = NULL, y = "Coefficient Estimate")
 
 # Save to PDF
-ggsave("~/projects/AaD_Research/output/plots/hungary/coef/czechia_coef_plot.pdf", plot, width = 12, height = 10)
+ggsave("~/projects/AaD_Research/output/plots/hungary/coef/hungary_coef_plot.pdf", plot, width = 12, height = 10)
 
 #===================================================
 # Bayesian Covariate Analysis: Boxplot Visualization
