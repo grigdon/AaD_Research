@@ -32,7 +32,7 @@ data_cz_questions <- CZData[questions]
 vars <- c("id", "Male", "Age", "Education", "Capital", "IdeologyLR", "Income", "FamIncome", "DemPolGrievance", "PolicyPolGrievance",
           "EconGrievanceRetro", "EconGrievanceProspInd", "EconGrievanceProspAgg", "EconGrievanceProspMostFams",
           "GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner", "Ukraine",
-          "NativeJobs", "NativeRights", "Religiosity", "VoteFarRight")
+          "NativeJobs", "NativeRights", "Religiosity", "VoteFarRight", "DemonstrateNational")
 
 # Subset and recode variables
 data_cz_vars <- CZData[vars]
@@ -58,10 +58,11 @@ endorse_object <- endorse(Y = Y,
                           data = data_cz,
                           identical.lambda = FALSE,
                           covariates = TRUE,
+                          prop = 0.010,
                           formula.indiv = formula( ~ Male + Age + Education + Capital + IdeologyLR + Income + FamIncome + DemPolGrievance +
                                                    PolicyPolGrievance + EconGrievanceRetro + EconGrievanceProspInd + EconGrievanceProspAgg +
                                                    EconGrievanceProspMostFams + GayNeighbor + GayFamily + ForNeighbor + ForPartner + Ukraine +
-                                                   NativeJobs + NativeRights + Religiosity + VoteFarRight
+                                                   NativeJobs + NativeRights + Religiosity + VoteFarRight + DemonstrateNational
                                                   ),
                           omega2.out = TRUE,
                           hierarchical = FALSE
@@ -103,21 +104,20 @@ ggsave("~/projects/AaD_Research/output/metro/czechia_acceptance_ratios.pdf",
 
 # Create the dataframe using posterior samples
 delta_matrix_values <- data.frame(
-  mean = apply(endorse_object$delta[, 2:23], 2, mean),
-  lower = apply(endorse_object$delta[, 2:23], 2, quantile, 0.025),
-  upper = apply(endorse_object$delta[, 2:23], 2, quantile, 0.975)
+  mean = apply(endorse_object$delta[, 2:24], 2, mean),
+  lower = apply(endorse_object$delta[, 2:24], 2, quantile, 0.025),
+  upper = apply(endorse_object$delta[, 2:24], 2, quantile, 0.975)
 )
 
 # Add variable names and categories
-delta_matrix_values$variables <- colnames(endorse_object$delta)[2:23]
+delta_matrix_values$variables <- colnames(endorse_object$delta)[2:24]
 delta_matrix_values$category <- NA
-
 
 # Define categories
 ses_demographics <- c("Age", "Male", "Education", "Capital", "IdeologyLR", "Income", "FamIncome", "Religiosity")
 political_economic_grievances <- c("DemPolGrievance", "PolicyPolGrievance", "EconGrievanceRetro", "EconGrievanceProspInd",
                                    "EconGrievanceProspAgg", "EconGrievanceProspMostFams")
-nationalism <- c( "NativeRights", "NativeJobs", "VoteFarRight")
+nationalism <- c( "NativeRights", "NativeJobs", "VoteFarRight", "DemonstrateNational")
 boundary_maintenance <- c("GayNeighbor", "GayFamily", "ForNeighbor", "ForPartner", "Ukraine")
 
 # Assign categories
