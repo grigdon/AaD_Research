@@ -36,8 +36,6 @@ vars <- c("id", "age", "male", "educ", "capital", "ideology", "income", "DemPolG
           "FAMincome", "Religiosity"  
 )
 
-print(as.data.frame(colnames(endorse_object$delta)))
-
 # Subset and recode variables
 data_slvk_vars <- SKdata[vars]
 
@@ -167,7 +165,7 @@ custom_labels <- c(
   "income" = "Personal Income", 
   "FAMincome" = "Family Income", 
   "DemPolGrievance" = "Political Grievance (Democracy)", 
-  "PolicyPolGrievance" = "Political Grievance (Policy", 
+  "PolicyPolGrievance" = "Political Grievance (Policy)", 
   "EconGrievenceRetro" = "Economic Grievance (Retro)", 
   "EconGrievenceProspInd" = "Economic Grievance (Prospective-Ind)", 
   "EconGrievenceProspAgg" = "Economic Grievance (Prospective-Agg)", 
