@@ -69,11 +69,17 @@ endorse_object <- endorse(Y = Y,
 lambda_samples <- as.matrix(endorse_object$lambda)
 sigma2 <- (endorse_object$x)^2  # Convert standard deviation to variance
 
-# Standardize lambdas for each question
+# Calculate the row-wise average of the three lambda parameters
+avg_lambda <- (lambda_samples[, "(Intercept).1.1"] + 
+                 lambda_samples[, "(Intercept).2.1"] + 
+                 lambda_samples[, "(Intercept).3.1"]) / 3
+
+# Include this average in the lambda_std list
 lambda_std <- list(
   q1 = lambda_samples[, "(Intercept).1.1"] / sigma2,
   q2 = lambda_samples[, "(Intercept).2.1"] / sigma2,
-  q3 = lambda_samples[, "(Intercept).3.1"] / sigma2
+  q3 = lambda_samples[, "(Intercept).3.1"] / sigma2,
+  average = avg_lambda / sigma2  # Standardize the average lambda just like the others
 )
 
 # Calculate summary statistics
@@ -86,76 +92,94 @@ question_stats <- lapply(lambda_std, function(x) {
   )
 })
 
-# Print results
-# --------------------------------------
-for (i in 1:3) {
-  q_name <- paste0("q", i)
-  cat(sprintf("Standardized Support for the Militia (Question %d):\n", i))
-  cat(sprintf("Mean: %.3f\n", question_stats[[q_name]]$mean))
-  cat(sprintf("95%% CI: [%.3f, %.3f]\n\n", 
-              question_stats[[q_name]]$ci[1], 
-              question_stats[[q_name]]$ci[2]))
-}
-
 # Create visualizations
 # --------------------------------------
 library(ggplot2)
 library(reshape2)
+library(extrafont)  # For professional fonts
+library(gridExtra)  # For adding table below plot
 
-# Density plot
-# --------------------------------------
-# Combine into a data frame for density plot
-posterior_df <- data.frame(
-  Question = rep(paste0("Q", 1:3), each = length(lambda_std$q1)),
-  Support = c(lambda_std$q1, lambda_std$q2, lambda_std$q3)
-)
+# Load additional fonts if available
+# font_import()
+# loadfonts(device = "win")  # Adjust for your OS
 
-# Create density plot
-density_plot <- ggplot(posterior_df, aes(x = Support, fill = Question)) +
-  geom_density(alpha = 0.5) +
-  labs(title = "Poland: Standardized Support by Question",
-       x = "Support Level (λ / σ²)", 
-       y = "Density") +
-  theme_minimal()
-
-print(density_plot)
-
-# Box plot
-# --------------------------------------
-# Create a data frame with explicit column names
-box_data <- data.frame(
-  "Question A" = lambda_std$q1,
-  "Question B" = lambda_std$q2,
-  "Question C" = lambda_std$q3
-)
-
-# Alternatively, create dataframe in long format directly
+# Create dataframe in long format with average
 box_data_long <- data.frame(
-  Question = factor(rep(c("Question A", "Question B", "Question C"), 
-                        times = c(length(lambda_std$q1), length(lambda_std$q2), length(lambda_std$q3))),
-                    levels = c("Question A", "Question B", "Question C")),
-  Support = c(lambda_std$q1, lambda_std$q2, lambda_std$q3)
+  Question = factor(rep(c("Question A", "Question B", "Question C", "Average"), 
+                        times = c(length(lambda_std$q1), length(lambda_std$q2), 
+                                  length(lambda_std$q3), length(lambda_std$average))),
+                    levels = c("Question A", "Question B", "Question C", "Average")),
+  Support = c(lambda_std$q1, lambda_std$q2, lambda_std$q3, lambda_std$average)
 )
 
-# Create box plot using the long format data
+# Set a professional color palette suitable for publication
+# Using a colorblind-friendly palette
+journal_colors <- c("#0072B2", "#D55E00", "#009E73", "#CC79A7")
+
+# Create publication-quality box plot
 box_plot <- ggplot(box_data_long, aes(x = Question, y = Support, fill = Question)) +
   geom_boxplot(
-    alpha = 0.8,
-    outlier.shape = 16,
-    outlier.size = 1,
-    outlier.alpha = 0.3
+    alpha = 0.85,
+    outlier.shape = 21,
+    outlier.size = 2,
+    outlier.alpha = 0.7,
+    outlier.color = "black",
+    outlier.fill = "white",
+    width = 0.6,
+    lwd = 0.6
   ) +
+  # Add horizontal reference line at 0
+  geom_hline(yintercept = 0, linetype = "dashed", color = "gray50", size = 0.5) +
+  # Fixed y-axis limits as requested
+  ylim(-1.5, 1.5) +
+  # Labels
   labs(
     title = "Poland: Standardized Support by Question",
-    x = "Question",
-    y = "Support Level (λ / σ²)"
+    subtitle = "Standardized posterior distributions across survey questions",
+    x = "",  # No x-axis label needed
+    y = "Standardized Support (λ / σ²)",
+    caption = "Note: Boxes represent interquartile range; whiskers extend to 1.5 x IQR"
   ) +
-  scale_fill_manual(values = c("#4E79A7", "#F28E2B", "#59A14F")) +  # Custom colors
-  theme_minimal() +
+  scale_fill_manual(values = journal_colors) +
+  theme_minimal(base_family = "Arial") +
   theme(
-    plot.title = element_text(hjust = 0.5, face = "bold"),
-    axis.text = element_text(size = 10),
-    legend.position = "none"  # Remove legend
+    plot.title = element_text(hjust = 0, face = "bold", size = 14),
+    plot.subtitle = element_text(hjust = 0, size = 12, color = "gray30"),
+    plot.caption = element_text(hjust = 0, size = 9, color = "gray30", margin = margin(t = 15)),
+    axis.title.y = element_text(size = 12, margin = margin(r = 10)),
+    axis.text = element_text(size = 11, color = "black"),
+    axis.text.x = element_text(size = 11, face = "bold", margin = margin(t = 5)),
+    panel.grid.major.y = element_line(color = "gray90", size = 0.3),
+    panel.grid.minor.y = element_line(color = "gray95", size = 0.2),
+    panel.grid.major.x = element_blank(),
+    panel.border = element_rect(color = "gray80", fill = NA, size = 0.5),
+    legend.position = "none",
+    plot.margin = margin(t = 20, r = 25, b = 20, l = 25)
   )
 
-print(box_plot)
+# Create a table with summary statistics for display below the plot
+stats_table <- data.frame(
+  Question = c("Question A", "Question B", "Question C", "Average"),
+  Mean = sapply(question_stats, function(x) round(x$mean, 3)),
+  Lower_CI = sapply(question_stats, function(x) round(x$ci[1], 3)),
+  Upper_CI = sapply(question_stats, function(x) round(x$ci[2], 3))
+)
+
+# Format table for display
+table_theme <- ttheme_minimal(
+  core = list(fg_params = list(hjust = 1, x = 0.9, fontface = "plain"),
+              bg_params = list(fill = c("white", "gray95"))),
+  colhead = list(fg_params = list(fontface = "bold", hjust = 1, x = 0.9),
+                 bg_params = list(fill = "white")),
+  rowhead = list(fg_params = list(hjust = 0, x = 0.1)))
+
+
+# save the plot
+
+ggsave(
+  filename = "~/projects/AaD_Research/output/plots/poland/dist/poland_macro.pdf",
+  plot = box_plot,
+  device = Cairo::CairoPDF,
+  width = 8,
+  height = 6
+)
