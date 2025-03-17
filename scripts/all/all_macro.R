@@ -264,11 +264,11 @@ library(gridExtra)  # For adding table below plot
 
 # Create dataframe in long format with average
 box_data_long <- data.frame(
-  Question = factor(rep(c("Czechia", "Poland", "Slovakia", "Hungary"), 
-                        times = c(length(standardized_lambda_samples$czechia), length(standardized_lambda_samples$poland), 
-                                  length(standardized_lambda_samples$slovakia), length(standardized_lambda_samples$hungary))),
-                    levels = c("Czechia", "Poland", "Slovakia", "Hungary")),
-  Support = c(standardized_lambda_samples$czechia, standardized_lambda_samples$poland, standardized_lambda_samples$slovakia, standardized_lambda_samples$hungary)
+  Question = factor(rep(c("Czechia", "Slovakia", "Poland", "Hungary"), 
+                        times = c(length(standardized_lambda_samples$czechia), length(standardized_lambda_samples$slovakia), 
+                                  length(standardized_lambda_samples$poland), length(standardized_lambda_samples$hungary))),
+                    levels = c("Czechia", "Slovakia", "Poland", "Hungary")),
+  Support = c(standardized_lambda_samples$czechia, standardized_lambda_samples$slovakia, standardized_lambda_samples$poland, standardized_lambda_samples$hungary)
 )
 
 # Set a professional color palette suitable for publication
@@ -334,7 +334,7 @@ table_theme <- ttheme_minimal(
 
 # Save plot
 
-# print(box_plot)
+print(box_plot)
 
 ggsave(
   filename = "~/projects/AaD_Research/output/plots/all/all_macro.pdf",
