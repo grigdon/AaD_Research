@@ -14,17 +14,19 @@ Gabe Rigdon
 - `output/` - Generated results
   - `metro/` - Metropolis acceptance ratios organized by country
   - `plots/` - Visualizations organized by country
-    - `poland/`
-    - `slovakia/`
-    - etc.
+  - `all/` - Visualizations for all countries
+  - `poland/` - Poland output plots
+    - `coef/` - Delta coefficient plots w/ covariates
+    - `corr/` - Correlation heatmap of covariates
+    - `covar/` - Covariate-speciic support probability graphs
+    - `dist/` - Distribution analysis of questions and multi-lambda support coefficients
 - `scripts/` - Analysis scripts organized by type
+  - `all/` - Analysis scripts that are run on every country in the dataset
   - `poland/`
+    - `poland_corr.R` - Produces correlation heatmap for the list of covariates; outputs to output folder
     - `poland_dist.R` - Produces plots for the survey distribution; outputs to output folder
-    - `poland_endorse.R` - Produces endorse effects; outputs to output folder
-  - `slovakia/`
-    - etc.
-  - `dist/` - Distribution analysis scripts
-  - `endorsement/` - Endorsement analysis scripts
+    - `poland_endorsement.R` - Produces endorse effects; outputs to output folder
+    - `poland_macro` - Produces question-by-question support levels; outputs to output folder
 - `scrubbing/` - Scripts that use raw_datasets to produce scrubbed_datasets
 
 - It is recommended that you clone this repository in ~/projects/AaD_Research/...
@@ -42,10 +44,11 @@ Rscript scrubbing/poland_dataset_scrubbing.R
 Run the distribution scripts to understand data patterns:
 ```
 Rscript scripts/poland/poland_dist.R
+Rscript scripts/polanad/poland_macro.R
 # Add other countries as needed
 ```
 
-These scripts generate stacked bar graphs and comparative visualizations in the `output/plots/[country]/dist/` directories.
+These scripts generate distribution analysis and comparison in the `output/plots/[country]/dist/` directories.
 
 ### 3. Endorsement Analysis
 Run the endorsement analysis scripts:
